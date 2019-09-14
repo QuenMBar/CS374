@@ -1,0 +1,402 @@
+
+Process 0 is checking the circuit...
+
+Process 4 is checking the circuit...
+
+Process 7 is checking the circuit...
+
+Process 1 is checking the circuit...
+
+Process 2 is checking the circuit...
+
+Process 5 is checking the circuit...
+
+Process 6 is checking the circuit...
+
+Process 3 is checking the circuit...
+
+Process 50 is checking the circuit...
+
+Process 48 is checking the circuit...
+
+Process 52 is checking the circuit...
+
+Process 53 is checking the circuit...
+
+Process 43 is checking the circuit...
+
+Process 54 is checking the circuit...
+
+Process 49 is checking the circuit...
+
+Process 13 is checking the circuit...
+
+Process 41 is checking the circuit...
+
+Process 51 is checking the circuit...
+
+Process 14 is checking the circuit...
+
+Process 42 is checking the circuit...
+
+Process 57 is checking the circuit...
+
+Process 22 is checking the circuit...
+
+Process 15 is checking the circuit...
+
+Process 44 is checking the circuit...
+
+Process 25 is checking the circuit...
+
+
+Process 62 is checking the circuit...
+
+Process 17 is checking the circuit...
+
+Process 33 is checking the circuit...
+
+Process 8 is checking the circuit...
+
+Process 45 is checking the circuit...
+
+Process 29 is checking the circuit...
+Process 55 is checking the circuit...
+
+Process 63 is checking the circuit...
+
+Process 18 is checking the circuit...
+
+Process 35 is checking the circuit...
+
+Process 9 is checking the circuit...
+
+Process 40 is checking the circuit...
+
+Process 30 is checking the circuit...
+
+Process 56 is checking the circuit...
+
+Process 20 is checking the circuit...
+
+Process 36 is checking the circuit...
+
+Process 10 is checking the circuit...
+
+Process 46 is checking the circuit...
+
+Process 24 is checking the circuit...
+
+Process 58 is checking the circuit...
+
+Process 16 is checking the circuit...
+
+Process 39 is checking the circuit...
+
+Process 11 is checking the circuit...
+
+
+Process 26 is checking the circuit...
+
+Process 59 is checking the circuit...
+
+Process 32 is checking the circuit...
+
+Process 47 is checking the circuit...
+
+Process 27 is checking the circuit...
+
+Process 37 is checking the circuit...
+Process 12 is checking the circuit...
+
+Process 19 is checking the circuit...
+
+Process 28 is checking the circuit...
+
+Process 61 is checking the circuit...
+
+Process 23 is checking the circuit...
+
+Process 38 is checking the circuit...
+
+
+
+
+Process 31 is checking the circuit...
+Process 60 is checking the circuit...
+Process 21 is checking the circuit...
+Process 34 is checking the circuit...
+53) 10011001111101011001100111110101 
+53) 10011001111101011001101111110101 
+53) 10011001111101011001110111110101 
+53) 10011001111101101001100111110101 
+53) 10011001111101101001101111110101 
+53) 10011001111101101001110111110101 
+53) 10011001111101111001100111110101 
+53) 10011001111101111001101111110101 
+53) 10011001111101111001110111110101 
+54) 10011001111101011001100111110110 
+54) 10011001111101011001101111110110 
+54) 10011001111101011001110111110110 
+54) 10011001111101101001100111110110 
+54) 10011001111101101001101111110110 
+54) 10011001111101101001110111110110 
+54) 10011001111101111001100111110110 
+54) 10011001111101111001101111110110 
+54) 10011001111101111001110111110110 
+53) 10011011111101011001100111110101 
+53) 10011011111101011001101111110101 
+53) 10011011111101011001110111110101 
+53) 10011011111101101001100111110101 
+53) 10011011111101101001101111110101 
+53) 10011011111101101001110111110101 
+53) 10011011111101111001100111110101 
+53) 10011011111101111001101111110101 
+53) 10011011111101111001110111110101 
+54) 10011011111101011001100111110110 
+54) 10011011111101011001101111110110 
+54) 10011011111101011001110111110110 
+54) 10011011111101101001100111110110 
+54) 10011011111101101001101111110110 
+54) 10011011111101101001110111110110 
+54) 10011011111101111001100111110110 
+54) 10011011111101111001101111110110 
+54) 10011011111101111001110111110110 
+55) 10011001111101011001100111110111 
+55) 10011001111101011001101111110111 
+55) 10011001111101011001110111110111 
+55) 10011001111101101001100111110111 
+55) 10011001111101101001101111110111 
+55) 10011001111101101001110111110111 
+55) 10011001111101111001100111110111 
+55) 10011001111101111001101111110111 
+55) 10011001111101111001110111110111 
+53) 10011101111101011001100111110101 
+53) 10011101111101011001101111110101 
+53) 10011101111101011001110111110101 
+53) 10011101111101101001100111110101 
+53) 10011101111101101001101111110101 
+53) 10011101111101101001110111110101 
+53) 10011101111101111001100111110101 
+53) 10011101111101111001101111110101 
+53) 10011101111101111001110111110101 
+54) 10011101111101011001100111110110 
+54) 10011101111101011001101111110110 
+54) 10011101111101011001110111110110 
+54) 10011101111101101001100111110110 
+54) 10011101111101101001101111110110 
+54) 10011101111101101001110111110110 
+54) 10011101111101111001100111110110 
+54) 10011101111101111001101111110110 
+54) 10011101111101111001110111110110 
+55) 10011011111101011001100111110111 
+55) 10011011111101011001101111110111 
+55) 10011011111101011001110111110111 
+55) 10011011111101101001100111110111 
+55) 10011011111101101001101111110111 
+55) 10011011111101101001110111110111 
+55) 10011011111101111001100111110111 
+55) 10011011111101111001101111110111 
+55) 10011011111101111001110111110111 
+55) 10011101111101011001100111110111 
+55) 10011101111101011001101111110111 
+55) 10011101111101011001110111110111 
+55) 10011101111101101001100111110111 
+55) 10011101111101101001101111110111 
+55) 10011101111101101001110111110111 
+55) 10011101111101111001100111110111 
+55) 10011101111101111001101111110111 
+55) 10011101111101111001110111110111 
+Process 43 finished in time 4.614393 secs.
+Process 43 found 0 solutions.
+
+Process 33 finished in time 4.623386 secs.
+Process 33 found 0 solutions.
+
+Process 56 finished in time 4.634384 secs.
+Process 56 found 0 solutions.
+
+Process 17 finished in time 4.637181 secs.
+Process 17 found 0 solutions.
+
+Process 58 finished in time 4.637431 secs.
+Process 58 found 0 solutions.
+
+Process 62 finished in time 4.645173 secs.
+Process 62 found 0 solutions.
+
+Process 19 finished in time 4.649152 secs.
+Process 19 found 0 solutions.
+
+Process 42 finished in time 4.651989 secs.
+Process 42 found 0 solutions.
+
+Process 46 finished in time 4.652520 secs.
+Process 46 found 0 solutions.
+
+Process 35 finished in time 4.652563 secs.
+Process 35 found 0 solutions.
+
+Process 30 finished in time 4.653106 secs.
+Process 30 found 0 solutions.
+
+Process 1 finished in time 4.656727 secs.
+Process 1 found 0 solutions.
+
+Process 10 finished in time 4.657300 secs.
+Process 10 found 0 solutions.
+
+Process 3 finished in time 4.658240 secs.
+Process 3 found 0 solutions.
+
+Process 59 finished in time 4.661049 secs.
+Process 59 found 0 solutions.
+
+Process 49 finished in time 4.661421 secs.
+Process 49 found 0 solutions.
+
+Process 47 finished in time 4.663596 secs.
+Process 47 found 0 solutions.
+
+Process 51 finished in time 4.664443 secs.
+Process 51 found 0 solutions.
+
+Process 14 finished in time 4.669090 secs.
+Process 14 found 0 solutions.
+
+Process 50 finished in time 4.670748 secs.
+Process 50 found 0 solutions.
+
+Process 2 finished in time 4.672033 secs.
+Process 2 found 0 solutions.
+
+Process 37 finished in time 4.671184 secs.
+Process 37 found 0 solutions.
+
+Process 52 finished in time 4.671822 secs.
+Process 52 found 0 solutions.
+
+Process 20 finished in time 4.671802 secs.
+Process 20 found 0 solutions.
+
+Process 36 finished in time 4.672199 secs.
+Process 36 found 0 solutions.
+
+Process 21 finished in time 4.673291 secs.
+Process 21 found 0 solutions.
+
+Process 27 finished in time 4.675529 secs.
+Process 27 found 0 solutions.
+
+Process 31 finished in time 4.676085 secs.
+Process 31 found 0 solutions.
+
+Process 60 finished in time 4.676254 secs.
+Process 60 found 0 solutions.
+
+Process 15 finished in time 4.677419 secs.
+Process 15 found 0 solutions.
+
+Process 11 finished in time 4.680556 secs.
+Process 11 found 0 solutions.
+
+Process 48 finished in time 4.682795 secs.
+Process 48 found 0 solutions.
+
+Process 25 finished in time 4.682946 secs.
+Process 25 found 0 solutions.
+
+Process 8 finished in time 4.683811 secs.
+Process 8 found 0 solutions.
+
+Process 0 finished in time 4.685232 secs.
+Process 0 found 0 solutions.
+
+Process 22 finished in time 4.685553 secs.
+Process 22 found 0 solutions.
+
+Process 26 finished in time 4.685441 secs.
+Process 26 found 0 solutions.
+
+Process 34 finished in time 4.686159 secs.
+Process 34 found 0 solutions.
+
+Process 28 finished in time 4.687818 secs.
+Process 28 found 0 solutions.
+
+Process 44 finished in time 4.688805 secs.
+Process 44 found 0 solutions.
+
+Process 57 finished in time 4.689613 secs.
+Process 57 found 0 solutions.
+
+Process 24 finished in time 4.689577 secs.
+Process 24 found 0 solutions.
+
+Process 63 finished in time 4.690338 secs.
+Process 63 found 0 solutions.
+
+Process 7 finished in time 4.691258 secs.
+Process 7 found 0 solutions.
+
+Process 13 finished in time 4.695886 secs.
+Process 13 found 0 solutions.
+
+Process 18 finished in time 4.696839 secs.
+Process 18 found 0 solutions.
+
+Process 4 finished in time 4.698234 secs.
+Process 4 found 0 solutions.
+
+Process 16 finished in time 4.701719 secs.
+Process 16 found 0 solutions.
+
+Process 32 finished in time 4.702241 secs.
+Process 32 found 0 solutions.
+
+Process 40 finished in time 4.707242 secs.
+Process 40 found 0 solutions.
+
+Process 9 finished in time 4.707461 secs.
+Process 9 found 0 solutions.
+
+Process 23 finished in time 4.707607 secs.
+Process 23 found 0 solutions.
+
+Process 12 finished in time 4.709974 secs.
+Process 12 found 0 solutions.
+
+Process 6 finished in time 4.716016 secs.
+Process 6 found 0 solutions.
+
+Process 5 finished in time 4.716481 secs.
+Process 5 found 0 solutions.
+
+Process 41 finished in time 4.726710 secs.
+Process 41 found 0 solutions.
+
+Process 38 finished in time 4.825299 secs.
+Process 38 found 0 solutions.
+
+Process 53 finished in time 4.978983 secs.
+Process 53 found 27 solutions.
+
+Process 54 finished in time 4.981993 secs.
+Process 54 found 27 solutions.
+
+Process 55 finished in time 5.059374 secs.
+Process 55 found 27 solutions.
+
+Process 61 finished in time 5.335262 secs.
+Process 61 found 0 solutions.
+
+Process 29 finished in time 5.361867 secs.
+Process 29 found 0 solutions.
+
+Process 39 finished in time 5.379902 secs.
+Process 39 found 0 solutions.
+
+Process 45 finished in time 5.385869 secs.
+Process 45 found 0 solutions.
+
+Total count = 81

@@ -1,0 +1,1166 @@
+Script started on 2019-09-13 01:23:43-0400
+]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ cat circuitSatisfiability.c 
+/* circuitSatifiability.c solves the Circuit Satisfiability
+ *  Problem using a brute-force sequential solution.
+ *
+ *   The particular circuit being tested is "wired" into the
+ *   logic of function 'checkCircuit'. All combinations of
+ *   inputs that satisfy the circuit are printed.
+ *
+ *   16-bit version by Michael J. Quinn, Sept 2002.
+ *   Extended to 32 bits by Joel C. Adams, Sept 2013.
+ * 
+ *    Edited by Quentin Barnes Sept 2019
+ */
+
+#include <stdio.h>     // printf()
+#include <limits.h>    // UINT_MAX
+#include <mpi.h>
+
+int checkCircuit (int, long);
+
+int main (int argc, char *argv[]) {
+   int id = -1, numProcesses = -1; 
+   long i = -1;
+   int count = 0;        // number of solutions 
+
+   // for (i = 0; i <= UINT_MAX; i++) {
+   //    count += checkCircuit (id, i);
+   // }
+
+   // printf ("Process %d finished.\n", id);
+   // fflush (stdout);
+
+   // printf("\nA total of %d solutions were found.\n\n", count);
+   // return 0;
+
+   MPI_Init(&argc, &argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, &id);
+	MPI_Comm_size(MPI_COMM_WORLD, &numProcesses);
+
+   double startTime = 0.0, totalTime = 0.0;
+   startTime = MPI_Wtime();
+
+   printf ("\nProcess %d is checking the circuit...\n", id);
+
+   for (i = id; i < UINT_MAX; i += numProcesses) {
+      count += checkCircuit(id, i);
+   }
+
+   totalTime = MPI_Wtime() - startTime;
+
+   printf("Process %d finished in time %f secs.\n", id, totalTime);
+   printf("Process %d found %d solutions.\n\n", id, count);
+
+   int global_count;
+   MPI_Reduce(&count, &global_count, 1, MPI_INT, MPI_SUM, 0,
+               MPI_COMM_WORLD);
+   if (id == 0) {
+      printf("Total count = %d\n", global_count);
+   }
+
+   MPI_Finalize();
+   return 0;
+}
+
+/* EXTRACT_BIT is a macro that extracts the ith bit of number n.
+ *
+ * parameters: n, a number;
+ *             i, the position of the bit we want to know.
+ *
+ * return: 1 if 'i'th bit of 'n' is 1; 0 otherwise 
+ */
+
+#define EXTRACT_BIT(n,i) ( (n & (1<<i) ) ? 1 : 0)
+
+
+/* checkCircuit() checks the circuit for a given input.
+ * parameters: id, the id of the process checking;
+ *             bits, the (long) rep. of the input being checked.
+ *
+ * output: the binary rep. of bits if the circuit outputs 1
+ * return: 1 if the circuit outputs 1; 0 otherwise.
+ */
+
+#define SIZE 32
+
+int checkCircuit (int id, long bits) {
+   int v[SIZE];        /* Each element is one of the 32 bits */
+   int i;
+
+   for (i = 0; i < SIZE; i++) {
+     v[i] = EXTRACT_BIT(bits,i);
+   }
+
+   if ( ( (v[0] || v[1]) && (!v[1] || !v[3]) && (v[2] || v[3])
+       && (!v[3] || !v[4]) && (v[4] || !v[5])
+       && (v[5] || !v[6]) && (v[5] || v[6])
+       && (v[6] || !v[15]) && (v[7] || !v[8])
+       && (!v[7] || !v[13]) && (v[8] || v[9])
+       && (v[8] || !v[9]) && (!v[9] || !v[10])
+       && (v[9] || v[11]) && (v[10] || v[11])
+       && (v[12] || v[13]) && (v[13] || !v[14])
+       && (v[14] || v[15]) )
+       &&
+          ( (v[16] || v[17]) && (!v[17] || !v[19]) && (v[18] || v[19])
+       && (!v[19] || !v[20]) && (v[20] || !v[21])
+       && (v[21] || !v[22]) && (v[21] || v[22])
+       && (v[22] || !v[31]) && (v[23] || !v[24])
+       && (!v[23] || !v[29]) && (v[24] || v[25])
+       && (v[24] || !v[25]) && (!v[25] || !v[26])
+       && (v[25] || v[27]) && (v[26] || v[27])
+       && (v[28] || v[29]) && (v[29] || !v[30])
+       && (v[30] || v[31]) ) )
+   {
+      printf ("%d) %d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d \n", id,
+         v[31],v[30],v[29],v[28],v[27],v[26],v[25],v[24],v[23],v[22],
+         v[21],v[20],v[19],v[18],v[17],v[16],v[15],v[14],v[13],v[12],
+         v[11],v[10],v[9],v[8],v[7],v[6],v[5],v[4],v[3],v[2],v[1],v[0]);
+      fflush (stdout);
+      return 1;
+   } else {
+      return 0;
+   }
+}
+
+]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpicc circuitSatisfiability.c -Wall -ansi -pedanticc -std=c99 -o circuitSatisfiability
+]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ [Kmpirun -np 4 -machinefile hosts ./spmd    circuitSatisfiabiility
+
+Process 3 is checking the circuit...
+
+Process 0 is checking the circuit...
+
+Process 2 is checking the circuit...
+
+Process 1 is checking the circuit...
+2) 10011001111101011001100111110110 
+2) 10011001111101011001101111110110 
+2) 10011001111101011001110111110110 
+2) 10011001111101101001100111110110 
+2) 10011001111101101001101111110110 
+2) 10011001111101101001110111110110 
+2) 10011001111101111001100111110110 
+2) 10011001111101111001101111110110 
+2) 10011001111101111001110111110110 
+2) 10011011111101011001100111110110 
+2) 10011011111101011001101111110110 
+2) 10011011111101011001110111110110 
+2) 10011011111101101001100111110110 
+2) 10011011111101101001101111110110 
+2) 10011011111101101001110111110110 
+2) 10011011111101111001100111110110 
+2) 10011011111101111001101111110110 
+2) 10011011111101111001110111110110 
+2) 10011101111101011001100111110110 
+2) 10011101111101011001101111110110 
+2) 10011101111101011001110111110110 
+2) 10011101111101101001100111110110 
+2) 10011101111101101001101111110110 
+2) 10011101111101101001110111110110 
+2) 10011101111101111001100111110110 
+2) 10011101111101111001101111110110 
+2) 10011101111101111001110111110110 
+1) 10011001111101011001100111110101 
+1) 10011001111101011001101111110101 
+1) 10011001111101011001110111110101 
+1) 10011001111101101001100111110101 
+1) 10011001111101101001101111110101 
+1) 10011001111101101001110111110101 
+1) 10011001111101111001100111110101 
+1) 10011001111101111001101111110101 
+1) 10011001111101111001110111110101 
+3) 10011001111101011001100111110111 
+3) 10011001111101011001101111110111 
+3) 10011001111101011001110111110111 
+3) 10011001111101101001100111110111 
+3) 10011001111101101001101111110111 
+3) 10011001111101101001110111110111 
+3) 10011001111101111001100111110111 
+3) 10011001111101111001101111110111 
+3) 10011001111101111001110111110111 
+1) 10011011111101011001100111110101 
+1) 10011011111101011001101111110101 
+1) 10011011111101011001110111110101 
+1) 10011011111101101001100111110101 
+1) 10011011111101101001101111110101 
+1) 10011011111101101001110111110101 
+1) 10011011111101111001100111110101 
+1) 10011011111101111001101111110101 
+1) 10011011111101111001110111110101 
+3) 10011011111101011001100111110111 
+3) 10011011111101011001101111110111 
+3) 10011011111101011001110111110111 
+3) 10011011111101101001100111110111 
+3) 10011011111101101001101111110111 
+3) 10011011111101101001110111110111 
+3) 10011011111101111001100111110111 
+3) 10011011111101111001101111110111 
+3) 10011011111101111001110111110111 
+1) 10011101111101011001100111110101 
+1) 10011101111101011001101111110101 
+1) 10011101111101011001110111110101 
+1) 10011101111101101001100111110101 
+1) 10011101111101101001101111110101 
+1) 10011101111101101001110111110101 
+1) 10011101111101111001100111110101 
+1) 10011101111101111001101111110101 
+1) 10011101111101111001110111110101 
+3) 10011101111101011001100111110111 
+3) 10011101111101011001101111110111 
+3) 10011101111101011001110111110111 
+3) 10011101111101101001100111110111 
+3) 10011101111101101001101111110111 
+3) 10011101111101101001110111110111 
+3) 10011101111101111001100111110111 
+3) 10011101111101111001101111110111 
+3) 10011101111101111001110111110111 
+Process 2 finished in time 71.584088 secs.
+Process 2 found 27 solutions.
+
+Process 0 finished in time 81.171758 secs.
+Process 0 found 0 solutions.
+
+Process 1 finished in time 84.282858 secs.
+Process 1 found 27 solutions.
+
+Process 3 finished in time 85.098460 secs.
+Process 3 found 27 solutions.
+
+Total count = 81
+]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ [Kmpirun -np 4 -machinefile hosts ./circuitSatisfiabiility[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 4 -machinefile hosts ./circuitSatisfia -machinefile hosts ./circuitSatisfiabil[1P[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 8 -machinefile hosts ./circuitSatisfiabi[1@l[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 8
+
+
+Process 3 is checking the circuit...
+
+Process 4 is checking the circuit...
+
+Process 5 is checking the circuit...
+
+Process 1 is checking the circuit...
+
+Process 0 is checking the circuit...
+
+Process 7 is checking the circuit...
+
+Process 2 is checking the circuit...
+
+Process 6 is checking the circuit...
+5) 10011001111101011001100111110101 
+5) 10011001111101011001101111110101 
+5) 10011001111101011001110111110101 
+5) 10011001111101101001100111110101 
+5) 10011001111101101001101111110101 
+5) 10011001111101101001110111110101 
+5) 10011001111101111001100111110101 
+5) 10011001111101111001101111110101 
+5) 10011001111101111001110111110101 
+5) 10011011111101011001100111110101 
+5) 10011011111101011001101111110101 
+5) 10011011111101011001110111110101 
+5) 10011011111101101001100111110101 
+5) 10011011111101101001101111110101 
+5) 10011011111101101001110111110101 
+5) 10011011111101111001100111110101 
+5) 10011011111101111001101111110101 
+5) 10011011111101111001110111110101 
+7) 10011001111101011001100111110111 
+7) 10011001111101011001101111110111 
+7) 10011001111101011001110111110111 
+7) 10011001111101101001100111110111 
+7) 10011001111101101001101111110111 
+7) 10011001111101101001110111110111 
+7) 10011001111101111001100111110111 
+7) 10011001111101111001101111110111 
+7) 10011001111101111001110111110111 
+6) 10011001111101011001100111110110 
+6) 10011001111101011001101111110110 
+6) 10011001111101011001110111110110 
+6) 10011001111101101001100111110110 
+6) 10011001111101101001101111110110 
+6) 10011001111101101001110111110110 
+6) 10011001111101111001100111110110 
+6) 10011001111101111001101111110110 
+6) 10011001111101111001110111110110 
+5) 10011101111101011001100111110101 
+5) 10011101111101011001101111110101 
+5) 10011101111101011001110111110101 
+5) 10011101111101101001100111110101 
+5) 10011101111101101001101111110101 
+5) 10011101111101101001110111110101 
+5) 10011101111101111001100111110101 
+5) 10011101111101111001101111110101 
+5) 10011101111101111001110111110101 
+7) 10011011111101011001100111110111 
+7) 10011011111101011001101111110111 
+7) 10011011111101011001110111110111 
+7) 10011011111101101001100111110111 
+7) 10011011111101101001101111110111 
+7) 10011011111101101001110111110111 
+7) 10011011111101111001100111110111 
+7) 10011011111101111001101111110111 
+7) 10011011111101111001110111110111 
+6) 10011011111101011001100111110110 
+6) 10011011111101011001101111110110 
+6) 10011011111101011001110111110110 
+6) 10011011111101101001100111110110 
+6) 10011011111101101001101111110110 
+6) 10011011111101101001110111110110 
+6) 10011011111101111001100111110110 
+6) 10011011111101111001101111110110 
+6) 10011011111101111001110111110110 
+7) 10011101111101011001100111110111 
+7) 10011101111101011001101111110111 
+7) 10011101111101011001110111110111 
+7) 10011101111101101001100111110111 
+7) 10011101111101101001101111110111 
+7) 10011101111101101001110111110111 
+7) 10011101111101111001100111110111 
+7) 10011101111101111001101111110111 
+7) 10011101111101111001110111110111 
+6) 10011101111101011001100111110110 
+6) 10011101111101011001101111110110 
+6) 10011101111101011001110111110110 
+6) 10011101111101101001100111110110 
+6) 10011101111101101001101111110110 
+6) 10011101111101101001110111110110 
+6) 10011101111101111001100111110110 
+6) 10011101111101111001101111110110 
+6) 10011101111101111001110111110110 
+Process 2 finished in time 33.914476 secs.
+Process 2 found 0 solutions.
+
+Process 3 finished in time 40.300476 secs.
+Process 3 found 0 solutions.
+
+Process 0 finished in time 40.546901 secs.
+Process 0 found 0 solutions.
+
+Process 4 finished in time 40.588556 secs.
+Process 4 found 0 solutions.
+
+Process 1 finished in time 40.905568 secs.
+Process 1 found 0 solutions.
+
+Process 5 finished in time 41.657411 secs.
+Process 5 found 27 solutions.
+
+Process 7 finished in time 42.217587 secs.
+Process 7 found 27 solutions.
+
+Process 6 finished in time 42.282066 secs.
+Process 6 found 27 solutions.
+
+Total count = 81
+]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ [Kmpirun -np 8 -machinefile hosts ./circuitSatisfiabiility[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 8 -machinefile hosts ./circuitSatisfia -machinefile hosts ./circuitSatisfiabil[1P[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 1 -machinefile hosts ./circuitSatisfiabi[1@l[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 16 -machinefile hosts ./circuitSatisfiab[1@i[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 16
+
+
+Process 3 is checking the circuit...
+
+Process 0 is checking the circuit...
+
+Process 9 is checking the circuit...
+
+Process 4 is checking the circuit...
+
+Process 7 is checking the circuit...
+
+Process 14 is checking the circuit...
+
+Process 10 is checking the circuit...
+
+Process 6 is checking the circuit...
+
+Process 15 is checking the circuit...
+
+Process 1 is checking the circuit...
+
+Process 5 is checking the circuit...
+
+Process 8 is checking the circuit...
+
+Process 13 is checking the circuit...
+
+Process 11 is checking the circuit...
+
+Process 12 is checking the circuit...
+
+Process 2 is checking the circuit...
+7) 10011001111101011001100111110111 
+7) 10011001111101011001101111110111 
+7) 10011001111101011001110111110111 
+7) 10011001111101101001100111110111 
+7) 10011001111101101001101111110111 
+7) 10011001111101101001110111110111 
+7) 10011001111101111001100111110111 
+7) 10011001111101111001101111110111 
+7) 10011001111101111001110111110111 
+5) 10011001111101011001100111110101 
+5) 10011001111101011001101111110101 
+5) 10011001111101011001110111110101 
+5) 10011001111101101001100111110101 
+5) 10011001111101101001101111110101 
+5) 10011001111101101001110111110101 
+5) 10011001111101111001100111110101 
+5) 10011001111101111001101111110101 
+5) 10011001111101111001110111110101 
+7) 10011011111101011001100111110111 
+7) 10011011111101011001101111110111 
+7) 10011011111101011001110111110111 
+7) 10011011111101101001100111110111 
+7) 10011011111101101001101111110111 
+7) 10011011111101101001110111110111 
+7) 10011011111101111001100111110111 
+7) 10011011111101111001101111110111 
+7) 10011011111101111001110111110111 
+5) 10011011111101011001100111110101 
+5) 10011011111101011001101111110101 
+5) 10011011111101011001110111110101 
+5) 10011011111101101001100111110101 
+5) 10011011111101101001101111110101 
+5) 10011011111101101001110111110101 
+5) 10011011111101111001100111110101 
+5) 10011011111101111001101111110101 
+5) 10011011111101111001110111110101 
+6) 10011001111101011001100111110110 
+6) 10011001111101011001101111110110 
+6) 10011001111101011001110111110110 
+6) 10011001111101101001100111110110 
+6) 10011001111101101001101111110110 
+6) 10011001111101101001110111110110 
+6) 10011001111101111001100111110110 
+6) 10011001111101111001101111110110 
+6) 10011001111101111001110111110110 
+7) 10011101111101011001100111110111 
+7) 10011101111101011001101111110111 
+7) 10011101111101011001110111110111 
+7) 10011101111101101001100111110111 
+7) 10011101111101101001101111110111 
+7) 10011101111101101001110111110111 
+7) 10011101111101111001100111110111 
+7) 10011101111101111001101111110111 
+7) 10011101111101111001110111110111 
+5) 10011101111101011001100111110101 
+5) 10011101111101011001101111110101 
+5) 10011101111101011001110111110101 
+5) 10011101111101101001100111110101 
+5) 10011101111101101001101111110101 
+5) 10011101111101101001110111110101 
+5) 10011101111101111001100111110101 
+5) 10011101111101111001101111110101 
+5) 10011101111101111001110111110101 
+6) 10011011111101011001100111110110 
+6) 10011011111101011001101111110110 
+6) 10011011111101011001110111110110 
+6) 10011011111101101001100111110110 
+6) 10011011111101101001101111110110 
+6) 10011011111101101001110111110110 
+6) 10011011111101111001100111110110 
+6) 10011011111101111001101111110110 
+6) 10011011111101111001110111110110 
+6) 10011101111101011001100111110110 
+6) 10011101111101011001101111110110 
+6) 10011101111101011001110111110110 
+6) 10011101111101101001100111110110 
+6) 10011101111101101001101111110110 
+6) 10011101111101101001110111110110 
+6) 10011101111101111001100111110110 
+6) 10011101111101111001101111110110 
+6) 10011101111101111001110111110110 
+Process 2 finished in time 16.603802 secs.
+Process 2 found 0 solutions.
+
+Process 12 finished in time 19.930451 secs.
+Process 12 found 0 solutions.
+
+Process 4 finished in time 20.269280 secs.
+Process 4 found 0 solutions.
+
+Process 14 finished in time 20.313689 secs.
+Process 14 found 0 solutions.
+
+Process 8 finished in time 20.379916 secs.
+Process 8 found 0 solutions.
+
+Process 15 finished in time 20.386655 secs.
+Process 15 found 0 solutions.
+
+Process 0 finished in time 20.397542 secs.
+Process 0 found 0 solutions.
+
+Process 11 finished in time 20.535991 secs.
+Process 11 found 0 solutions.
+
+Process 10 finished in time 20.609799 secs.
+Process 10 found 0 solutions.
+
+Process 3 finished in time 20.714729 secs.
+Process 3 found 0 solutions.
+
+Process 13 finished in time 20.780156 secs.
+Process 13 found 0 solutions.
+
+Process 9 finished in time 20.979571 secs.
+Process 9 found 0 solutions.
+
+Process 7 finished in time 21.004213 secs.
+Process 7 found 27 solutions.
+
+Process 5 finished in time 21.038970 secs.
+Process 5 found 27 solutions.
+
+Process 6 finished in time 21.533493 secs.
+Process 6 found 27 solutions.
+
+Process 1 finished in time 22.754646 secs.
+Process 1 found 0 solutions.
+
+Total count = 81
+]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ [Kmpirun -np 16 -machinefile hosts ./circuitSatisfiabbility[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 16 -machinefile hosts ./circuitSatisfi -machinefile hosts ./circuitSatisfiabi[1P[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 1 -machinefile hosts ./circuitSatisfiabil[1P[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 3 -machinefile hosts ./circuitSatisfiabi[1@l[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 32 -machinefile hosts ./circuitSatisfiab[1@i[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 32
+
+
+Process 3 is checking the circuit...
+
+Process 21 is checking the circuit...
+
+Process 23 is checking the circuit...
+
+Process 4 is checking the circuit...
+
+Process 8 is checking the circuit...
+
+Process 5 is checking the circuit...
+
+Process 7 is checking the circuit...
+
+Process 12 is checking the circuit...
+
+Process 16 is checking the circuit...
+
+Process 28 is checking the circuit...
+
+Process 29 is checking the circuit...
+
+Process 25 is checking the circuit...
+
+Process 26 is checking the circuit...
+
+Process 0 is checking the circuit...
+
+Process 14 is checking the circuit...
+
+Process 22 is checking the circuit...
+
+Process 24 is checking the circuit...
+
+Process 17 is checking the circuit...
+
+Process 10 is checking the circuit...
+
+Process 15 is checking the circuit...
+
+Process 6 is checking the circuit...
+
+Process 11 is checking the circuit...
+
+Process 1 is checking the circuit...
+
+Process 9 is checking the circuit...
+
+Process 20 is checking the circuit...
+
+Process 27 is checking the circuit...
+
+Process 30 is checking the circuit...
+
+Process 13 is checking the circuit...
+
+Process 19 is checking the circuit...
+
+Process 31 is checking the circuit...
+
+Process 2 is checking the circuit...
+
+Process 18 is checking the circuit...
+21) 10011001111101011001100111110101 
+21) 10011001111101011001101111110101 
+21) 10011001111101011001110111110101 
+21) 10011001111101101001100111110101 
+21) 10011001111101101001101111110101 
+21) 10011001111101101001110111110101 
+21) 10011001111101111001100111110101 
+21) 10011001111101111001101111110101 
+21) 10011001111101111001110111110101 
+23) 10011001111101011001100111110111 
+23) 10011001111101011001101111110111 
+23) 10011001111101011001110111110111 
+23) 10011001111101101001100111110111 
+23) 10011001111101101001101111110111 
+23) 10011001111101101001110111110111 
+23) 10011001111101111001100111110111 
+23) 10011001111101111001101111110111 
+23) 10011001111101111001110111110111 
+21) 10011011111101011001100111110101 
+21) 10011011111101011001101111110101 
+21) 10011011111101011001110111110101 
+21) 10011011111101101001100111110101 
+21) 10011011111101101001101111110101 
+21) 10011011111101101001110111110101 
+21) 10011011111101111001100111110101 
+21) 10011011111101111001101111110101 
+21) 10011011111101111001110111110101 
+23) 10011011111101011001100111110111 
+23) 10011011111101011001101111110111 
+23) 10011011111101011001110111110111 
+23) 10011011111101101001100111110111 
+23) 10011011111101101001101111110111 
+23) 10011011111101101001110111110111 
+23) 10011011111101111001100111110111 
+23) 10011011111101111001101111110111 
+23) 10011011111101111001110111110111 
+22) 10011001111101011001100111110110 
+22) 10011001111101011001101111110110 
+22) 10011001111101011001110111110110 
+22) 10011001111101101001100111110110 
+22) 10011001111101101001101111110110 
+22) 10011001111101101001110111110110 
+22) 10011001111101111001100111110110 
+22) 10011001111101111001101111110110 
+22) 10011001111101111001110111110110 
+21) 10011101111101011001100111110101 
+21) 10011101111101011001101111110101 
+21) 10011101111101011001110111110101 
+21) 10011101111101101001100111110101 
+21) 10011101111101101001101111110101 
+21) 10011101111101101001110111110101 
+21) 10011101111101111001100111110101 
+21) 10011101111101111001101111110101 
+21) 10011101111101111001110111110101 
+23) 10011101111101011001100111110111 
+23) 10011101111101011001101111110111 
+23) 10011101111101011001110111110111 
+23) 10011101111101101001100111110111 
+23) 10011101111101101001101111110111 
+23) 10011101111101101001110111110111 
+23) 10011101111101111001100111110111 
+23) 10011101111101111001101111110111 
+23) 10011101111101111001110111110111 
+22) 10011011111101011001100111110110 
+22) 10011011111101011001101111110110 
+22) 10011011111101011001110111110110 
+22) 10011011111101101001100111110110 
+22) 10011011111101101001101111110110 
+22) 10011011111101101001110111110110 
+22) 10011011111101111001100111110110 
+22) 10011011111101111001101111110110 
+22) 10011011111101111001110111110110 
+22) 10011101111101011001100111110110 
+22) 10011101111101011001101111110110 
+22) 10011101111101011001110111110110 
+22) 10011101111101101001100111110110 
+22) 10011101111101101001101111110110 
+22) 10011101111101101001110111110110 
+22) 10011101111101111001100111110110 
+22) 10011101111101111001101111110110 
+22) 10011101111101111001110111110110 
+Process 18 finished in time 8.288178 secs.
+Process 18 found 0 solutions.
+
+Process 2 finished in time 8.330521 secs.
+Process 2 found 0 solutions.
+
+Process 15 finished in time 10.060714 secs.
+Process 15 found 0 solutions.
+
+Process 16 finished in time 10.065269 secs.
+Process 16 found 0 solutions.
+
+Process 0 finished in time 10.066567 secs.
+Process 0 found 0 solutions.
+
+Process 24 finished in time 10.071952 secs.
+Process 24 found 0 solutions.
+
+Process 29 finished in time 10.119638 secs.
+Process 29 found 0 solutions.
+
+Process 26 finished in time 10.142205 secs.
+Process 26 found 0 solutions.
+
+Process 14 finished in time 10.144206 secs.
+Process 14 found 0 solutions.
+
+Process 20 finished in time 10.144497 secs.
+Process 20 found 0 solutions.
+
+Process 30 finished in time 10.145408 secs.
+Process 30 found 0 solutions.
+
+Process 19 finished in time 10.147612 secs.
+Process 19 found 0 solutions.
+
+Process 12 finished in time 10.148701 secs.
+Process 12 found 0 solutions.
+
+Process 4 finished in time 10.149445 secs.
+Process 4 found 0 solutions.
+
+Process 28 finished in time 10.155038 secs.
+Process 28 found 0 solutions.
+
+Process 27 finished in time 10.193128 secs.
+Process 27 found 0 solutions.
+
+Process 31 finished in time 10.194891 secs.
+Process 31 found 0 solutions.
+
+Process 11 finished in time 10.236970 secs.
+Process 11 found 0 solutions.
+
+Process 8 finished in time 10.245509 secs.
+Process 8 found 0 solutions.
+
+Process 10 finished in time 10.268434 secs.
+Process 10 found 0 solutions.
+
+Process 7 finished in time 10.305872 secs.
+Process 7 found 0 solutions.
+
+Process 3 finished in time 10.358301 secs.
+Process 3 found 0 solutions.
+
+Process 5 finished in time 10.376860 secs.
+Process 5 found 0 solutions.
+
+Process 9 finished in time 10.403805 secs.
+Process 9 found 0 solutions.
+
+Process 6 finished in time 10.641405 secs.
+Process 6 found 0 solutions.
+
+Process 23 finished in time 10.675165 secs.
+Process 23 found 27 solutions.
+
+Process 21 finished in time 10.676434 secs.
+Process 21 found 27 solutions.
+
+Process 13 finished in time 10.728800 secs.
+Process 13 found 0 solutions.
+
+Process 22 finished in time 10.814365 secs.
+Process 22 found 27 solutions.
+
+Process 17 finished in time 11.331413 secs.
+Process 17 found 0 solutions.
+
+Process 1 finished in time 11.371875 secs.
+Process 1 found 0 solutions.
+
+Process 25 finished in time 11.386663 secs.
+Process 25 found 0 solutions.
+
+Total count = 81
+]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ [Kmpirun -np 32 -machinefile hosts ./circuitSatisfiabbility[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 32 -machinefile hosts ./circuitSatisfi -machinefile hosts ./circuitSatisfiabi[1P[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 3 -machinefile hosts ./circuitSatisfiabil[1P[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 6 -machinefile hosts ./circuitSatisfiabi[1@l[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 64 -machinefile hosts ./circuitSatisfiab[1@i[A]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ mpirun -np 64
+
+
+Process 3 is checking the circuit...
+
+Process 37 is checking the circuit...
+
+Process 5 is checking the circuit...
+
+Process 8 is checking the circuit...
+
+Process 48 is checking the circuit...
+
+Process 50 is checking the circuit...
+
+Process 6 is checking the circuit...
+
+Process 15 is checking the circuit...
+
+Process 38 is checking the circuit...
+
+Process 1 is checking the circuit...
+
+Process 39 is checking the circuit...
+
+Process 7 is checking the circuit...
+
+Process 42 is checking the circuit...
+
+Process 12 is checking the circuit...
+
+Process 10 is checking the circuit...
+
+Process 14 is checking the circuit...
+
+Process 9 is checking the circuit...
+
+Process 25 is checking the circuit...
+
+Process 13 is checking the circuit...
+
+Process 16 is checking the circuit...
+
+Process 32 is checking the circuit...
+
+Process 0 is checking the circuit...
+
+Process 29 is checking the circuit...
+
+Process 21 is checking the circuit...
+
+Process 27 is checking the circuit...
+
+Process 26 is checking the circuit...
+
+Process 24 is checking the circuit...
+
+Process 22 is checking the circuit...
+
+Process 23 is checking the circuit...
+
+Process 28 is checking the circuit...
+
+Process 4 is checking the circuit...
+
+Process 35 is checking the circuit...
+
+Process 41 is checking the circuit...
+
+Process 46 is checking the circuit...
+
+Process 44 is checking the circuit...
+
+Process 43 is checking the circuit...
+
+Process 45 is checking the circuit...
+
+Process 59 is checking the circuit...
+
+Process 47 is checking the circuit...
+
+Process 17 is checking the circuit...
+
+Process 34 is checking the circuit...
+
+Process 63 is checking the circuit...
+
+Process 55 is checking the circuit...
+
+Process 40 is checking the circuit...
+
+Process 30 is checking the circuit...
+
+Process 49 is checking the circuit...
+
+Process 61 is checking the circuit...
+
+Process 60 is checking the circuit...
+
+Process 58 is checking the circuit...
+
+Process 56 is checking the circuit...
+
+Process 54 is checking the circuit...
+
+Process 53 is checking the circuit...
+
+Process 57 is checking the circuit...
+
+Process 62 is checking the circuit...
+
+Process 11 is checking the circuit...
+
+Process 51 is checking the circuit...
+
+Process 31 is checking the circuit...
+
+Process 20 is checking the circuit...
+
+Process 19 is checking the circuit...
+
+Process 33 is checking the circuit...
+
+Process 2 is checking the circuit...
+
+Process 36 is checking the circuit...
+
+Process 52 is checking the circuit...
+
+Process 18 is checking the circuit...
+53) 10011001111101011001100111110101 
+53) 10011001111101011001101111110101 
+53) 10011001111101011001110111110101 
+53) 10011001111101101001100111110101 
+53) 10011001111101101001101111110101 
+53) 10011001111101101001110111110101 
+53) 10011001111101111001100111110101 
+53) 10011001111101111001101111110101 
+53) 10011001111101111001110111110101 
+55) 10011001111101011001100111110111 
+55) 10011001111101011001101111110111 
+55) 10011001111101011001110111110111 
+55) 10011001111101101001100111110111 
+55) 10011001111101101001101111110111 
+55) 10011001111101101001110111110111 
+55) 10011001111101111001100111110111 
+55) 10011001111101111001101111110111 
+55) 10011001111101111001110111110111 
+54) 10011001111101011001100111110110 
+54) 10011001111101011001101111110110 
+54) 10011001111101011001110111110110 
+54) 10011001111101101001100111110110 
+54) 10011001111101101001101111110110 
+54) 10011001111101101001110111110110 
+54) 10011001111101111001100111110110 
+54) 10011001111101111001101111110110 
+54) 10011001111101111001110111110110 
+53) 10011011111101011001100111110101 
+53) 10011011111101011001101111110101 
+53) 10011011111101011001110111110101 
+53) 10011011111101101001100111110101 
+53) 10011011111101101001101111110101 
+53) 10011011111101101001110111110101 
+53) 10011011111101111001100111110101 
+53) 10011011111101111001101111110101 
+53) 10011011111101111001110111110101 
+55) 10011011111101011001100111110111 
+55) 10011011111101011001101111110111 
+55) 10011011111101011001110111110111 
+55) 10011011111101101001100111110111 
+55) 10011011111101101001101111110111 
+55) 10011011111101101001110111110111 
+55) 10011011111101111001100111110111 
+55) 10011011111101111001101111110111 
+55) 10011011111101111001110111110111 
+54) 10011011111101011001100111110110 
+54) 10011011111101011001101111110110 
+54) 10011011111101011001110111110110 
+54) 10011011111101101001100111110110 
+54) 10011011111101101001101111110110 
+54) 10011011111101101001110111110110 
+54) 10011011111101111001100111110110 
+54) 10011011111101111001101111110110 
+54) 10011011111101111001110111110110 
+53) 10011101111101011001100111110101 
+53) 10011101111101011001101111110101 
+53) 10011101111101011001110111110101 
+53) 10011101111101101001100111110101 
+53) 10011101111101101001101111110101 
+53) 10011101111101101001110111110101 
+53) 10011101111101111001100111110101 
+53) 10011101111101111001101111110101 
+53) 10011101111101111001110111110101 
+55) 10011101111101011001100111110111 
+55) 10011101111101011001101111110111 
+55) 10011101111101011001110111110111 
+55) 10011101111101101001100111110111 
+55) 10011101111101101001101111110111 
+55) 10011101111101101001110111110111 
+55) 10011101111101111001100111110111 
+55) 10011101111101111001101111110111 
+55) 10011101111101111001110111110111 
+54) 10011101111101011001100111110110 
+54) 10011101111101011001101111110110 
+54) 10011101111101011001110111110110 
+54) 10011101111101101001100111110110 
+54) 10011101111101101001101111110110 
+54) 10011101111101101001110111110110 
+54) 10011101111101111001100111110110 
+54) 10011101111101111001101111110110 
+54) 10011101111101111001110111110110 
+Process 36 finished in time 4.260485 secs.
+Process 36 found 0 solutions.
+
+Process 52 finished in time 4.262032 secs.
+Process 52 found 0 solutions.
+
+Process 18 finished in time 4.280844 secs.
+Process 18 found 0 solutions.
+
+Process 2 finished in time 4.284062 secs.
+Process 2 found 0 solutions.
+
+Process 33 finished in time 4.779587 secs.
+Process 33 found 0 solutions.
+
+Process 32 finished in time 5.015373 secs.
+Process 32 found 0 solutions.
+
+Process 24 finished in time 5.053512 secs.
+Process 24 found 0 solutions.
+
+Process 28 finished in time 5.053747 secs.
+Process 28 found 0 solutions.
+
+Process 4 finished in time 5.056361 secs.
+Process 4 found 0 solutions.
+
+Process 16 finished in time 5.057323 secs.
+Process 16 found 0 solutions.
+
+Process 44 finished in time 5.057981 secs.
+Process 44 found 0 solutions.
+
+Process 20 finished in time 5.059352 secs.
+Process 20 found 0 solutions.
+
+Process 27 finished in time 5.068597 secs.
+Process 27 found 0 solutions.
+
+Process 63 finished in time 5.070220 secs.
+Process 63 found 0 solutions.
+
+Process 43 finished in time 5.070820 secs.
+Process 43 found 0 solutions.
+
+Process 14 finished in time 5.070821 secs.
+Process 14 found 0 solutions.
+
+Process 30 finished in time 5.072136 secs.
+Process 30 found 0 solutions.
+
+Process 26 finished in time 5.076678 secs.
+Process 26 found 0 solutions.
+
+Process 47 finished in time 5.078521 secs.
+Process 47 found 0 solutions.
+
+Process 48 finished in time 5.081310 secs.
+Process 48 found 0 solutions.
+
+Process 60 finished in time 5.081421 secs.
+Process 60 found 0 solutions.
+
+Process 12 finished in time 5.082039 secs.
+Process 12 found 0 solutions.
+
+Process 0 finished in time 5.083284 secs.
+Process 0 found 0 solutions.
+
+Process 40 finished in time 5.084849 secs.
+Process 40 found 0 solutions.
+
+Process 10 finished in time 5.085127 secs.
+Process 10 found 0 solutions.
+
+Process 56 finished in time 5.085217 secs.
+Process 56 found 0 solutions.
+
+Process 58 finished in time 5.087155 secs.
+Process 58 found 0 solutions.
+
+Process 46 finished in time 5.087762 secs.
+Process 46 found 0 solutions.
+
+Process 62 finished in time 5.089428 secs.
+Process 62 found 0 solutions.
+
+Process 34 finished in time 5.092573 secs.
+Process 34 found 0 solutions.
+
+Process 51 finished in time 5.094531 secs.
+Process 51 found 0 solutions.
+
+Process 35 finished in time 5.094533 secs.
+Process 35 found 0 solutions.
+
+Process 31 finished in time 5.096723 secs.
+Process 31 found 0 solutions.
+
+Process 19 finished in time 5.098154 secs.
+Process 19 found 0 solutions.
+
+Process 7 finished in time 5.117140 secs.
+Process 7 found 0 solutions.
+
+Process 59 finished in time 5.120592 secs.
+Process 59 found 0 solutions.
+
+Process 15 finished in time 5.120595 secs.
+Process 15 found 0 solutions.
+
+Process 13 finished in time 5.130115 secs.
+Process 13 found 0 solutions.
+
+Process 21 finished in time 5.136324 secs.
+Process 21 found 0 solutions.
+
+Process 22 finished in time 5.142865 secs.
+Process 22 found 0 solutions.
+
+Process 39 finished in time 5.148998 secs.
+Process 39 found 0 solutions.
+
+Process 29 finished in time 5.165108 secs.
+Process 29 found 0 solutions.
+
+Process 61 finished in time 5.165893 secs.
+Process 61 found 0 solutions.
+
+Process 11 finished in time 5.179601 secs.
+Process 11 found 0 solutions.
+
+Process 9 finished in time 5.191903 secs.
+Process 9 found 0 solutions.
+
+Process 8 finished in time 5.195627 secs.
+Process 8 found 0 solutions.
+
+Process 42 finished in time 5.204160 secs.
+Process 42 found 0 solutions.
+
+Process 3 finished in time 5.210660 secs.
+Process 3 found 0 solutions.
+
+Process 6 finished in time 5.257432 secs.
+Process 6 found 0 solutions.
+
+Process 45 finished in time 5.291073 secs.
+Process 45 found 0 solutions.
+
+Process 50 finished in time 5.291739 secs.
+Process 50 found 0 solutions.
+
+Process 23 finished in time 5.313393 secs.
+Process 23 found 0 solutions.
+
+Process 53 finished in time 5.372326 secs.
+Process 53 found 27 solutions.
+
+Process 54 finished in time 5.414723 secs.
+Process 54 found 27 solutions.
+
+Process 55 finished in time 5.415822 secs.
+Process 55 found 27 solutions.
+
+Process 5 finished in time 5.552993 secs.
+Process 5 found 0 solutions.
+
+Process 41 finished in time 5.589573 secs.
+Process 41 found 0 solutions.
+
+Process 1 finished in time 5.646853 secs.
+Process 1 found 0 solutions.
+
+Process 17 finished in time 5.660918 secs.
+Process 17 found 0 solutions.
+
+Process 49 finished in time 5.663200 secs.
+Process 49 found 0 solutions.
+
+Process 38 finished in time 5.680109 secs.
+Process 38 found 0 solutions.
+
+Process 37 finished in time 5.681171 secs.
+Process 37 found 0 solutions.
+
+Process 25 finished in time 5.699329 secs.
+Process 25 found 0 solutions.
+
+Process 57 finished in time 5.709456 secs.
+Process 57 found 0 solutions.
+
+Total count = 81
+]0;qmb2@gold18: ~/git/CS374/HW01[01;32mqmb2@gold18[00m:[01;34m~/git/CS374/HW01[00m$ [Kexit
