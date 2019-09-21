@@ -24,7 +24,7 @@ my $maxtimeout = 10;
 # # # # # # #
 
 # check for proper .rhosts file
-my $rhostsfile = sprintf("/home/%s/.rhosts",$ENV{USER});
+my $rhostsfile = sprintf("/home/qmb2/.rhosts");
 if(!(-f $rhostsfile)) { die "Your $rhostsfile does not exist!\nPlease setup .rhosts before running genHosts.pl\n"; }
 my $mode = (stat($rhostsfile))[2];
 my $modeformatted = sprintf("%04o",$mode & 07777);
