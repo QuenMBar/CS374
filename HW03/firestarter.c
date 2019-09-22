@@ -44,7 +44,8 @@ int main(int argc, char **argv)
     int n_probs = 101;
     int do_display = 1;
     xgraph thegraph;
-    int id = -1, numProcesses = -1;
+    double *times_burned;
+    int id = -1, numWorkers = -1;
 
     // check command line arguments
 
@@ -72,51 +73,72 @@ int main(int argc, char **argv)
     forest = allocate_forest(forest_size);
     prob_spread = (double *)malloc(n_probs * sizeof(double));
     percent_burned = (double *)malloc(n_probs * sizeof(double));
+    times_burned = (double *)malloc(n_probs * sizeof(double));
 
     // for a number of probabilities, calculate
     // average burn and output
     prob_step = (prob_max - prob_min) / (double)(n_probs - 1);
-    printf("Probability of fire spreading, Average percent burned\n");
-
-    MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &id);
-    MPI_Comm_size(MPI_COMM_WORLD, &numProcesses);
-
     if (id == 0)
     {
-        for (i_prob = 0; i_prob < n_probs; i_prob++)
+        printf("Probability of fire spreading, Average percent burned, Average times burned\n");
+    }
+
+    //Init MPI and set id and numWorkers
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &id);
+    MPI_Comm_size(MPI_COMM_WORLD, &numWorkers);
+
+    for (i_prob = 0; i_prob < n_probs; i_prob++)
+    {
+        //for a number of trials, calculate average
+        //percent burn
+        prob_spread[i_prob] = prob_min + (double)i_prob * prob_step;
+        double local_percent_burned = 0.0;
+        double local_times_burned = 0.0;
+        for (i_trial = id; i_trial < n_trials; i_trial += numWorkers)
         {
-            //for a number of trials, calculate average
-            //percent burn
-            prob_spread[i_prob] = prob_min + (double)i_prob * prob_step;
-            percent_burned[i_prob] = 0.0;
-            for (i_trial = 0; i_trial < n_trials; i_trial++)
-            {
-                //burn until fire is gone
-                burn_until_out(forest_size, forest, prob_spread[i_prob],
-                               forest_size / 2, forest_size / 2);
-                percent_burned[i_prob] += get_percent_burned(forest_size, forest);
-            }
+            //burn until fire is gone
+            local_times_burned += burn_until_out(forest_size, forest, prob_spread[i_prob],
+                                                 forest_size / 2, forest_size / 2);
+            local_percent_burned += get_percent_burned(forest_size, forest);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Reduce(&local_times_burned, &times_burned[i_prob], 1, MPI_DOUBLE, MPI_SUM, 0,
+                   MPI_COMM_WORLD);
+        MPI_Reduce(&local_percent_burned, &percent_burned[i_prob], 1, MPI_DOUBLE, MPI_SUM, 0,
+                   MPI_COMM_WORLD);
+
+        // printf("Thread %d is finished with prob %d\n", id, i_prob);
+
+        if (id == 0)
+        {
             percent_burned[i_prob] /= n_trials;
+            times_burned[i_prob] /= n_trials;
 
             // print output
-            printf("%lf , %lf\n", prob_spread[i_prob],
-                   percent_burned[i_prob]);
+            printf("%lf , %lf , %lf\n", prob_spread[i_prob],
+                   percent_burned[i_prob], times_burned[i_prob]);
         }
-
-        // plot graph
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (id == 0)
+    {
         if (do_display == 1)
         {
             xgraphSetup(&thegraph, 300, 300);
             xgraphDraw(&thegraph, n_probs, 0, 0, 1, 1, prob_spread, percent_burned);
             pause();
         }
+        printf("Main thread dying");
+        delete_forest(forest_size, forest);
+        free(prob_spread);
+        free(percent_burned);
+        free(times_burned);
     }
-
-    // clean up
-    delete_forest(forest_size, forest);
-    free(prob_spread);
-    free(percent_burned);
+    else
+    {
+        printf("Non main thread %d dying\n", id);
+    }
     MPI_Finalize();
     return 0;
 }
