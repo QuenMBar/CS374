@@ -44,10 +44,7 @@ int main(int argc, char **argv)
     int n_probs = 101;
     int do_display = 1;
     xgraph thegraph;
-    double *times_burned;
     int id = -1, numWorkers = -1;
-    double *final_percent_burned;
-    double *final_times_burned;
 
     // check command line arguments
 
@@ -70,7 +67,6 @@ int main(int argc, char **argv)
     if (do_display != 0)
         do_display = 1;
 
-    //Init MPI and set id and numWorkers
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &id);
     MPI_Comm_size(MPI_COMM_WORLD, &numWorkers);
@@ -80,88 +76,46 @@ int main(int argc, char **argv)
     forest = allocate_forest(forest_size);
     prob_spread = (double *)malloc(n_probs * sizeof(double));
     percent_burned = (double *)malloc(n_probs * sizeof(double));
-    times_burned = (double *)malloc(n_probs * sizeof(double));
-
-    //Start timer
-    double startTime = 0.0, totalTime = 0.0;
-    startTime = MPI_Wtime();
 
     // for a number of probabilities, calculate
     // average burn and output
     prob_step = (prob_max - prob_min) / (double)(n_probs - 1);
-    if (id == 0)
-    {
-        printf("Probability of fire spreading, Average percent burned, Average times burned\n");
-    }
-
+    printf("Probability of fire spreading, Average percent burned\n");
     for (i_prob = 0; i_prob < n_probs; i_prob++)
     {
         //for a number of trials, calculate average
         //percent burn
         prob_spread[i_prob] = prob_min + (double)i_prob * prob_step;
-        for (i_trial = id; i_trial < n_trials; i_trial += numWorkers)
+        percent_burned[i_prob] = 0.0;
+        for (i_trial = 0; i_trial < n_trials; i_trial++)
         {
             //burn until fire is gone
-            times_burned[i_prob] += burn_until_out(forest_size, forest, prob_spread[i_prob],
-                                                   forest_size / 2, forest_size / 2);
+            burn_until_out(forest_size, forest, prob_spread[i_prob],
+                           forest_size / 2, forest_size / 2);
             percent_burned[i_prob] += get_percent_burned(forest_size, forest);
         }
+        percent_burned[i_prob] /= n_trials;
 
-        // if (id == 0)
-        // {
-        //     printf("Finished %d prob\n", i_prob);
-        // }
+        // print output
+        printf("%lf , %lf\n", prob_spread[i_prob],
+               percent_burned[i_prob]);
     }
-
-    final_percent_burned = (double *)malloc(n_probs * sizeof(double));
-    final_times_burned = (double *)malloc(n_probs * sizeof(double));
-    for (int i = 0; i < n_probs; i++)
-    {
-        final_percent_burned[i] = 0;
-        final_times_burned[i] = 0;
-    }
-    MPI_Reduce(times_burned, final_times_burned, n_probs, MPI_DOUBLE, MPI_SUM, 0,
-               MPI_COMM_WORLD);
-    MPI_Reduce(percent_burned, final_percent_burned, n_probs, MPI_DOUBLE, MPI_SUM, 0,
-               MPI_COMM_WORLD);
-
-    totalTime = MPI_Wtime() - startTime;
 
     if (id == 0)
     {
-        for (int i = 0; i < n_probs; i++)
+        // plot graph
+        if (do_display == 1)
         {
-            final_percent_burned[i] /= n_trials;
-            final_times_burned[i] /= n_trials;
-
-            // print output
-            printf("%lf , %lf , %lf\n", prob_spread[i],
-                   final_percent_burned[i], final_times_burned[i]);
+            xgraphSetup(&thegraph, 300, 300);
+            xgraphDraw(&thegraph, n_probs, 0, 0, 1, 1, prob_spread, percent_burned);
+            // pause();
         }
-
-        printf("Firestarter took %f\n\n", totalTime);
     }
 
-    // if (id == 0)
-    // {
-    //     // if (do_display == 1)
-    //     // {
-    //     //     xgraphSetup(&thegraph, 300, 300);
-    //     //     xgraphDraw(&thegraph, n_probs, 0, 0, 1, 1, prob_spread, final_percent_burned);
-    //     //     pause();
-    //     // }
-    //     // printf("Main thread dying");
-    // }
-    // else
-    // {
-    //     // printf("Non main thread %d dying\n", id);
-    // }
+    // clean up
     delete_forest(forest_size, forest);
     free(prob_spread);
     free(percent_burned);
-    free(times_burned);
-    free(final_percent_burned);
-    free(final_times_burned);
     MPI_Finalize();
     return 0;
 }

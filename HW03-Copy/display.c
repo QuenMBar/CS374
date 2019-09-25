@@ -12,7 +12,8 @@
 
 char *getDisplay()
 {
-	char *display = getenv("DISPLAY");
+	char *display = ":0.0";
+	printf("%s", display);
 	if (!display)
 	{
 		fprintf(stderr, "\n*** Fatal: DISPLAY variable not set.\n");
