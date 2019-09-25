@@ -1,6 +1,11 @@
 /* firestarter.c 
  * David Joiner
  * Usage: Fire [forestSize(20)] [numTrials(5000)] * [numProbabilities(101)] [showGraph(1)]
+ * 
+ * Edited by Quentin Barnes
+ * For CS 374 HW 3
+ * At Calvin University
+ * On Sep 25, 2019
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,7 +47,7 @@ int main(int argc, char **argv)
     int n_trials = 5000;
     int i_prob;
     int n_probs = 101;
-    int do_display = 1;
+    int do_display = 0;
     xgraph thegraph;
     double *times_burned;
     int id = -1, numWorkers = -1;
@@ -67,15 +72,15 @@ int main(int argc, char **argv)
     {
         sscanf(argv[4], "%d", &do_display);
     }
-    if (do_display != 0)
-        do_display = 1;
+    if (do_display != 1)
+        do_display = 0;
 
     //Init MPI and set id and numWorkers
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &id);
     MPI_Comm_size(MPI_COMM_WORLD, &numWorkers);
 
-    // setup problem
+    // setup problem.  Allocate memory for arrays
     seed_by_time(0);
     forest = allocate_forest(forest_size);
     prob_spread = (double *)malloc(n_probs * sizeof(double));
@@ -87,7 +92,7 @@ int main(int argc, char **argv)
     startTime = MPI_Wtime();
 
     // for a number of probabilities, calculate
-    // average burn and output
+    // average burn and output. Print if process 0
     prob_step = (prob_max - prob_min) / (double)(n_probs - 1);
     if (id == 0)
     {
@@ -96,37 +101,34 @@ int main(int argc, char **argv)
 
     for (i_prob = 0; i_prob < n_probs; i_prob++)
     {
-        //for a number of trials, calculate average
-        //percent burn
+        //for each probability, and the number of trials, calculate average
+        //percent burn and iterations it took to burn
+        //Splits the 5000 trials into chunks depending on the # of processes
         prob_spread[i_prob] = prob_min + (double)i_prob * prob_step;
         for (i_trial = id; i_trial < n_trials; i_trial += numWorkers)
         {
-            //burn until fire is gone
+            //burn until fire is gone and add the number of steps it took
             times_burned[i_prob] += burn_until_out(forest_size, forest, prob_spread[i_prob],
                                                    forest_size / 2, forest_size / 2);
             percent_burned[i_prob] += get_percent_burned(forest_size, forest);
         }
-
-        // if (id == 0)
-        // {
-        //     printf("Finished %d prob\n", i_prob);
-        // }
     }
 
+    //Allocate memory for the arrays that will be getting reduced into
     final_percent_burned = (double *)malloc(n_probs * sizeof(double));
     final_times_burned = (double *)malloc(n_probs * sizeof(double));
-    for (int i = 0; i < n_probs; i++)
-    {
-        final_percent_burned[i] = 0;
-        final_times_burned[i] = 0;
-    }
+
+    //Reduce the arrays that had the fragments of data in them to
+    //one final array
     MPI_Reduce(times_burned, final_times_burned, n_probs, MPI_DOUBLE, MPI_SUM, 0,
                MPI_COMM_WORLD);
     MPI_Reduce(percent_burned, final_percent_burned, n_probs, MPI_DOUBLE, MPI_SUM, 0,
                MPI_COMM_WORLD);
 
+    //Stop the timer since the parallel calculations are done
     totalTime = MPI_Wtime() - startTime;
 
+    //Print out the averages for percent burned and iterations it took
     if (id == 0)
     {
         for (int i = 0; i < n_probs; i++)
@@ -139,23 +141,23 @@ int main(int argc, char **argv)
                    final_percent_burned[i], final_times_burned[i]);
         }
 
+        //Print total time took
         printf("Firestarter took %f\n\n", totalTime);
     }
 
-    // if (id == 0)
-    // {
-    //     // if (do_display == 1)
-    //     // {
-    //     //     xgraphSetup(&thegraph, 300, 300);
-    //     //     xgraphDraw(&thegraph, n_probs, 0, 0, 1, 1, prob_spread, final_percent_burned);
-    //     //     pause();
-    //     // }
-    //     // printf("Main thread dying");
-    // }
-    // else
-    // {
-    //     // printf("Non main thread %d dying\n", id);
-    // }
+    //If master process and display is set to true show graph
+    //Though it doesn't seem to work now that the program is parellelized
+    if (id == 0)
+    {
+        if (do_display == 1)
+        {
+            xgraphSetup(&thegraph, 300, 300);
+            xgraphDraw(&thegraph, n_probs, 0, 0, 1, 1, prob_spread, final_percent_burned);
+            pause();
+        }
+    }
+
+    //Clean up memory and process and exit
     delete_forest(forest_size, forest);
     free(prob_spread);
     free(percent_burned);
