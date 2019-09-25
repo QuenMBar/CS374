@@ -3,4 +3,6 @@
 # qmb2@borg:~/374/HW~
 # file names must be in <name><cores>.slurm
 
-scp qmb2@borg:~/374/HW$1/*.out ./
+scp HW$1 qmb2@borg:~/374
+
+

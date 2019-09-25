@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "X-graph.h"
-#include <mpi.h>
 
 #define UNBURNT 0
 #define SMOLDERING 1
@@ -44,7 +43,7 @@ int main(int argc, char **argv)
     int n_probs = 101;
     int do_display = 1;
     xgraph thegraph;
-    int id = -1, numWorkers = -1;
+    double *times_burned;
 
     // check command line arguments
 
@@ -67,15 +66,12 @@ int main(int argc, char **argv)
     if (do_display != 0)
         do_display = 1;
 
-    MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &id);
-    MPI_Comm_size(MPI_COMM_WORLD, &numWorkers);
-
     // setup problem
     seed_by_time(0);
     forest = allocate_forest(forest_size);
     prob_spread = (double *)malloc(n_probs * sizeof(double));
     percent_burned = (double *)malloc(n_probs * sizeof(double));
+    times_burned = (double *)malloc(n_probs * sizeof(double));
 
     // for a number of probabilities, calculate
     // average burn and output
@@ -90,33 +86,30 @@ int main(int argc, char **argv)
         for (i_trial = 0; i_trial < n_trials; i_trial++)
         {
             //burn until fire is gone
-            burn_until_out(forest_size, forest, prob_spread[i_prob],
-                           forest_size / 2, forest_size / 2);
+            times_burned[i_prob] += burn_until_out(forest_size, forest, prob_spread[i_prob],
+                                                   forest_size / 2, forest_size / 2);
             percent_burned[i_prob] += get_percent_burned(forest_size, forest);
         }
         percent_burned[i_prob] /= n_trials;
+        times_burned[i_prob] /= n_trials;
 
         // print output
-        printf("%lf , %lf\n", prob_spread[i_prob],
-               percent_burned[i_prob]);
+        printf("%lf , %lf, %lf\n", prob_spread[i_prob],
+               percent_burned[i_prob], times_burned[i_prob]);
     }
 
-    if (id == 0)
+    // plot graph
+    if (do_display == 1)
     {
-        // plot graph
-        if (do_display == 1)
-        {
-            xgraphSetup(&thegraph, 300, 300);
-            xgraphDraw(&thegraph, n_probs, 0, 0, 1, 1, prob_spread, percent_burned);
-            // pause();
-        }
+        xgraphSetup(&thegraph, 300, 300);
+        xgraphDraw(&thegraph, n_probs, 0, 0, 1, 1, prob_spread, percent_burned);
+        pause();
     }
 
     // clean up
     delete_forest(forest_size, forest);
     free(prob_spread);
     free(percent_burned);
-    MPI_Finalize();
     return 0;
 }
 
