@@ -5,11 +5,11 @@
 #SBATCH -N 1
 #
 # Set the number of processes per node (max 16)
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=4
 #
 
 # Load the compiler and MPI library
 module load openmpi-2.0/gcc
 
 # Run the program
-mpirun ./Fire
+mpirun ./Fire 80

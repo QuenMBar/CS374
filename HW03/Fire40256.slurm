@@ -12,4 +12,4 @@
 module load openmpi-2.0/gcc
 
 # Run the program
-mpirun ./Fire
+mpirun ./Fire 40
