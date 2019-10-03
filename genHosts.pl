@@ -7,6 +7,9 @@
 #  2019-09-17 - rewritten to be 'smarter' when finding hosts; actually test
 #   them for rsh login ability before adding them to the list.
 #   Additionally checks for valid .rhosts files
+#  2019-09-24 - updated home to use ENV{HOME} instead of assuming /home/ + 
+#    ENV{HOME}
+# 
 
 use Socket;
 use Net::Ping;
@@ -24,7 +27,7 @@ my $maxtimeout = 10;
 # # # # # # #
 
 # check for proper .rhosts file
-my $rhostsfile = sprintf("/home/%s/.rhosts",$ENV{USER});
+my $rhostsfile = sprintf("%s/.rhosts",$ENV{HOME});
 if(!(-f $rhostsfile)) { die "Your $rhostsfile does not exist!\nPlease setup .rhosts before running genHosts.pl\n"; }
 my $mode = (stat($rhostsfile))[2];
 my $modeformatted = sprintf("%04o",$mode & 07777);

@@ -69,11 +69,11 @@ int main(int argc, char *argv[])
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    MPI_Comm_size(MPI_COMM_WORLD, &numWorkers);
 
-   if (rank == 0)
-   {
-      printf("Fail point %d\n", errorPoint);
-      errorPoint++;
-   }
+   // if (rank == 0)
+   // {
+   //    printf("Fail point %d\n", errorPoint);
+   //    errorPoint++;
+   // }
 
    // // Uncomment this block for interactive use
    // printf("\nEnter spacing (.005): ");
@@ -85,16 +85,11 @@ int main(int argc, char *argv[])
    // printf("\nSpacing=%lf, center=(%lf,%lf)\n",
    //        spacing, x_center, y_center);
 
-   MPE_Open_graphics(&graph, MPI_COMM_WORLD,
-                     getDisplay(),
-                     -1, -1,
-                     WINDOW_SIZE, WINDOW_SIZE, 0);
-
-   if (rank == 0)
-   {
-      printf("Fail point %d\n", errorPoint);
-      errorPoint++;
-   }
+   // if (rank == 0)
+   // {
+   //    printf("Fail point %d\n", errorPoint);
+   //    errorPoint++;
+   // }
 
    /**
     * Create a array to store values. Final size is WINDOW_SIZExWINDOW_SIZE but init depends on chunks
@@ -106,15 +101,22 @@ int main(int argc, char *argv[])
    startNum = numPorccessesPerProcess * rank;
    endNum = numPorccessesPerProcess * (rank + 1);
    initSize = (WINDOW_SIZE / numWorkers) * WINDOW_SIZE;
-   computeArray = (int **)malloc(initSize * sizeof(int));
 
-   if (rank == 0)
+   computeArray = (int **)malloc((WINDOW_SIZE / numWorkers) * sizeof(int *));
+   for (int i = 0; i < (WINDOW_SIZE / numWorkers); i++)
+   {
+      computeArray[i] = (int *)malloc(WINDOW_SIZE * sizeof(int));
+   }
+
+   if (rank == 1)
    {
       printf("Fail point %d\n", errorPoint);
       errorPoint++;
    }
 
    printf("Process %d is computing from %d to %d\n", rank, startNum, endNum);
+
+   MPI_Barrier(MPI_COMM_WORLD);
 
    for (ix = startNum; ix < endNum; ix++)
    {
@@ -131,36 +133,53 @@ int main(int argc, char *argv[])
             n++;
          }
 
+         if (rank == 1)
+         {
+            printf("Fail point %d\n", errorPoint);
+            errorPoint++;
+         }
+         if (rank == 1)
+         {
+            printf("Saving at %d, %d", ix, iy);
+         }
          computeArray[ix][iy] = n;
       }
    }
 
-   if (rank == 0)
+   // if (rank == 0)
+   // {
+   //    printf("Fail point %d\n", errorPoint);
+   //    errorPoint++;
+   // }
+
+   gatherArray = (int **)malloc(WINDOW_SIZE * sizeof(int *));
+   for (int i = 0; i < WINDOW_SIZE; i++)
    {
-      printf("Fail point %d\n", errorPoint);
-      errorPoint++;
+      gatherArray[i] = (int *)malloc(WINDOW_SIZE * sizeof(int));
    }
 
-   gatherArray = (int **)malloc(WINDOW_SIZE * WINDOW_SIZE * sizeof(int));
-
-   if (rank == 0)
-   {
-      printf("Fail point %d\n", errorPoint);
-      errorPoint++;
-   }
+   // if (rank == 0)
+   // {
+   //    printf("Fail point %d\n", errorPoint);
+   //    errorPoint++;
+   // }
 
    MPI_Gather(computeArray, initSize, MPI_INT,
               gatherArray, initSize, MPI_INT, 0, MPI_COMM_WORLD);
 
-   if (rank == 0)
-   {
-      printf("Fail point %d\n", errorPoint);
-      errorPoint++;
-   }
+   // if (rank == 0)
+   // {
+   //    printf("Fail point %d\n", errorPoint);
+   //    errorPoint++;
+   // }
 
    // pause until mouse-click so the program doesn't terminate
    if (rank == 0)
    {
+      MPE_Open_graphics(&graph, MPI_COMM_WORLD,
+                        getDisplay(),
+                        -1, -1,
+                        WINDOW_SIZE, WINDOW_SIZE, 0);
       for (ix = 0; ix < WINDOW_SIZE; ix++)
       {
          for (iy = 0; iy < WINDOW_SIZE; iy++)
@@ -176,16 +195,18 @@ int main(int argc, char *argv[])
          }
       }
 
-      if (rank == 0)
-      {
-         printf("Fail point %d\n", errorPoint);
-         errorPoint++;
-      }
+      // if (rank == 0)
+      // {
+      //    printf("Fail point %d\n", errorPoint);
+      //    errorPoint++;
+      // }
 
       printf("\nClick in the window to continue...\n");
       MPE_Get_mouse_press(graph, &ix, &iy, &button);
    }
    MPE_Close_graphics(&graph);
+   free(gatherArray);
+   free(computeArray);
    MPI_Finalize();
    return 0;
 }

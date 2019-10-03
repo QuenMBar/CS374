@@ -40,7 +40,6 @@ int main(int argc, char *argv[])
    int x = 0, y = 0;
    int id = 0, button = 0;
    MPE_XGraph canvas;
-   char *display = getDisplay();
 
    /* initialize */
    MPI_Init(&argc, &argv);
@@ -48,12 +47,12 @@ int main(int argc, char *argv[])
    if (id == 0)
    {
       printf("Opening %dx%d window.\n", WINDOW_WIDTH, WINDOW_HEIGHT);
+      MPE_Open_graphics(&canvas, MPI_COMM_WORLD,
+                        getDisplay(),
+                        -1, -1,
+                        WINDOW_WIDTH, WINDOW_HEIGHT, 0);
    }
 
-   MPE_Open_graphics(&canvas, MPI_COMM_WORLD,
-                     display,
-                     -1, -1,
-                     WINDOW_WIDTH, WINDOW_HEIGHT, 0);
    /*
      *  Draw a bulls-eye, with 
      *   -  master drawing bulls-eye;
@@ -68,15 +67,15 @@ int main(int argc, char *argv[])
                       10,
                       MPE_BLACK);
    }
-   else
-   {
-      MPE_Draw_circle(canvas,
-                      WINDOW_WIDTH / 2,
-                      WINDOW_HEIGHT / 2,
-                      id * 25,
-                      MPE_RED);
-      MPE_Update(canvas);
-   }
+   // else
+   // {
+   //    MPE_Draw_circle(canvas,
+   //                    WINDOW_WIDTH / 2,
+   //                    WINDOW_HEIGHT / 2,
+   //                    id * 25,
+   //                    MPE_RED);
+   //    MPE_Update(canvas);
+   // }
 
    /* 
      * Draw blue circles wherever the user left-clicks
