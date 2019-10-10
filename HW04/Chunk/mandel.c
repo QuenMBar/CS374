@@ -42,17 +42,16 @@ double distance(double x, double y)
 int main(int argc, char *argv[])
 {
    const int WINDOW_SIZE = 1024;
-   int **gatherArray;
-   int **computeArray;
    int n = 0,
        ix = 0,
        iy = 0,
        button = 0,
        startNum = -1,
        endNum = -1,
-       numPorccessesPerProcess = 0,
+       numColumnsPerProcess = 0,
        initSize = 0,
-       errorPoint = 0;
+       rank = -1,
+       numWorkers = -1;
    double spacing = 0.005,
           x = 0.0,
           y = 0.0,
@@ -60,36 +59,11 @@ int main(int argc, char *argv[])
           c_imag = 0.0,
           x_center = 1.0,
           y_center = 0.0;
-
-   int rank = -1, numWorkers = -1;
-
    MPE_XGraph graph;
 
    MPI_Init(&argc, &argv);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    MPI_Comm_size(MPI_COMM_WORLD, &numWorkers);
-
-   // if (rank == 0)
-   // {
-   //    printf("Fail point %d\n", errorPoint);
-   //    errorPoint++;
-   // }
-
-   // // Uncomment this block for interactive use
-   // printf("\nEnter spacing (.005): ");
-   // fflush(stdout);
-   // scanf("%lf", &spacing);
-   // printf("\nEnter coordinates of center point (0,0): ");
-   // fflush(stdout);
-   // scanf("%lf %lf", &x_center, &y_center);
-   // printf("\nSpacing=%lf, center=(%lf,%lf)\n",
-   //        spacing, x_center, y_center);
-
-   // if (rank == 0)
-   // {
-   //    printf("Fail point %d\n", errorPoint);
-   //    errorPoint++;
-   // }
 
    /**
     * Create a array to store values. Final size is WINDOW_SIZExWINDOW_SIZE but init depends on chunks
@@ -97,26 +71,20 @@ int main(int argc, char *argv[])
     * Process 0 can display the final results
    */
 
-   numPorccessesPerProcess = WINDOW_SIZE / numWorkers;
-   startNum = numPorccessesPerProcess * rank;
-   endNum = numPorccessesPerProcess * (rank + 1);
-   initSize = (WINDOW_SIZE / numWorkers) * WINDOW_SIZE;
+   numColumnsPerProcess = WINDOW_SIZE / numWorkers;
 
-   computeArray = (int **)malloc((WINDOW_SIZE / numWorkers) * sizeof(int *));
-   for (int i = 0; i < (WINDOW_SIZE / numWorkers); i++)
-   {
-      computeArray[i] = (int *)malloc(WINDOW_SIZE * sizeof(int));
-   }
+   startNum = rank * numColumnsPerProcess;
+   endNum = startNum + numColumnsPerProcess;
+   initSize = numColumnsPerProcess;
 
-   if (rank == 1)
-   {
-      printf("Fail point %d\n", errorPoint);
-      errorPoint++;
-   }
+   short computeArray[initSize][WINDOW_SIZE];
 
-   printf("Process %d is computing from %d to %d\n", rank, startNum, endNum);
+   // printf("Process %d is computing from %d to %d\n", rank, startNum, endNum);
 
    MPI_Barrier(MPI_COMM_WORLD);
+
+   double startTime = 0.0, totalTime = 0.0;
+   startTime = MPI_Wtime();
 
    for (ix = startNum; ix < endNum; ix++)
    {
@@ -133,49 +101,41 @@ int main(int argc, char *argv[])
             n++;
          }
 
-         if (rank == 1)
-         {
-            printf("Fail point %d\n", errorPoint);
-            errorPoint++;
-         }
-         if (rank == 1)
-         {
-            printf("Saving at %d, %d", ix, iy);
-         }
-         computeArray[ix][iy] = n;
+         computeArray[ix - startNum][iy] = n;
       }
    }
 
-   // if (rank == 0)
-   // {
-   //    printf("Fail point %d\n", errorPoint);
-   //    errorPoint++;
-   // }
+   short gatherArray[WINDOW_SIZE][WINDOW_SIZE];
 
-   gatherArray = (int **)malloc(WINDOW_SIZE * sizeof(int *));
-   for (int i = 0; i < WINDOW_SIZE; i++)
+   MPI_Gather(computeArray, initSize * WINDOW_SIZE, MPI_SHORT,
+              gatherArray, initSize * WINDOW_SIZE, MPI_SHORT, 0, MPI_COMM_WORLD);
+
+   if ((numWorkers % 2) == 1 && rank == 0)
    {
-      gatherArray[i] = (int *)malloc(WINDOW_SIZE * sizeof(int));
+      for (ix = numWorkers * numColumnsPerProcess; ix < 1024; ix++)
+      {
+         for (iy = 0; iy < WINDOW_SIZE; iy++)
+         {
+            c_real = (ix - 400) * spacing - x_center;
+            c_imag = (iy - 400) * spacing - y_center;
+            x = y = 0.0;
+            n = 0;
+
+            while (n < 50 && distance(x, y) < 4.0)
+            {
+               compute(x, y, c_real, c_imag, &x, &y);
+               n++;
+            }
+
+            gatherArray[ix][iy] = n;
+         }
+      }
    }
-
-   // if (rank == 0)
-   // {
-   //    printf("Fail point %d\n", errorPoint);
-   //    errorPoint++;
-   // }
-
-   MPI_Gather(computeArray, initSize, MPI_INT,
-              gatherArray, initSize, MPI_INT, 0, MPI_COMM_WORLD);
-
-   // if (rank == 0)
-   // {
-   //    printf("Fail point %d\n", errorPoint);
-   //    errorPoint++;
-   // }
 
    // pause until mouse-click so the program doesn't terminate
    if (rank == 0)
    {
+      // totalTime = MPI_Wtime() - startTime;
       MPE_Open_graphics(&graph, MPI_COMM_WORLD,
                         getDisplay(),
                         -1, -1,
@@ -184,7 +144,9 @@ int main(int argc, char *argv[])
       {
          for (iy = 0; iy < WINDOW_SIZE; iy++)
          {
-            if (computeArray[ix][iy] < 50)
+
+            // printf("%d ", computeArray[ix][iy]);
+            if (gatherArray[ix][iy] < 50)
             {
                MPE_Draw_point(graph, ix, iy, MPE_RED);
             }
@@ -195,18 +157,14 @@ int main(int argc, char *argv[])
          }
       }
 
-      // if (rank == 0)
-      // {
-      //    printf("Fail point %d\n", errorPoint);
-      //    errorPoint++;
-      // }
+      totalTime = MPI_Wtime() - startTime;
 
       printf("\nClick in the window to continue...\n");
       MPE_Get_mouse_press(graph, &ix, &iy, &button);
+
+      printf("Time: %f\n", totalTime);
+      MPE_Close_graphics(&graph);
    }
-   MPE_Close_graphics(&graph);
-   free(gatherArray);
-   free(computeArray);
    MPI_Finalize();
    return 0;
 }
