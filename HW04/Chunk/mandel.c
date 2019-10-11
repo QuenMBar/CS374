@@ -3,6 +3,15 @@
  * Written Winter, 1998, W. David Laverell.
  *
  * Refactored Winter 2002, Joel Adams. 
+ * 
+ * This program computes and displays the Mandelbrot set.  This program uses Chunks to 
+ * parallelize it and then uses gather to group all the chunks into one array.
+ * It times this and then displays the time and the picture computed.
+ * 
+ * Edited By Quentin Barnes
+ * Why   HomeWork 4, CS 374
+ * Where Calvin University, Gold Lab
+ * Date  8/10/19
  */
 
 #include <stdio.h>
@@ -41,6 +50,7 @@ double distance(double x, double y)
 
 int main(int argc, char *argv[])
 {
+   //Make variables
    const int WINDOW_SIZE = 1024;
    int n = 0,
        ix = 0,
@@ -61,15 +71,12 @@ int main(int argc, char *argv[])
           y_center = 0.0;
    MPE_XGraph graph;
 
+   //Init mpi
    MPI_Init(&argc, &argv);
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    MPI_Comm_size(MPI_COMM_WORLD, &numWorkers);
 
-   /**
-    * Create a array to store values. Final size is WINDOW_SIZExWINDOW_SIZE but init depends on chunks
-    * Possible scatter, def gather
-    * Process 0 can display the final results
-   */
+   //Calculate the size of chunks and create the arrays with that size
 
    numColumnsPerProcess = WINDOW_SIZE / numWorkers;
 
@@ -79,13 +86,14 @@ int main(int argc, char *argv[])
 
    short computeArray[initSize][WINDOW_SIZE];
 
-   // printf("Process %d is computing from %d to %d\n", rank, startNum, endNum);
-
    MPI_Barrier(MPI_COMM_WORLD);
 
+   //Start timer
    double startTime = 0.0, totalTime = 0.0;
    startTime = MPI_Wtime();
 
+   //Compute the n per x and y.  Save that in an array[x][y]
+   //Start at start of chunk and iterate till the end of chunk
    for (ix = startNum; ix < endNum; ix++)
    {
       for (iy = 0; iy < WINDOW_SIZE; iy++)
@@ -105,11 +113,13 @@ int main(int argc, char *argv[])
       }
    }
 
+   //Create the gather array and gather all the arrays
    short gatherArray[WINDOW_SIZE][WINDOW_SIZE];
 
    MPI_Gather(computeArray, initSize * WINDOW_SIZE, MPI_SHORT,
               gatherArray, initSize * WINDOW_SIZE, MPI_SHORT, 0, MPI_COMM_WORLD);
 
+   //If there is remainers, handle them
    if ((numWorkers % 2) == 1 && rank == 0)
    {
       for (ix = numWorkers * numColumnsPerProcess; ix < 1024; ix++)
@@ -132,10 +142,9 @@ int main(int argc, char *argv[])
       }
    }
 
-   // pause until mouse-click so the program doesn't terminate
+   //If rank 0, open the graphics window and draw the gathered array
    if (rank == 0)
    {
-      // totalTime = MPI_Wtime() - startTime;
       MPE_Open_graphics(&graph, MPI_COMM_WORLD,
                         getDisplay(),
                         -1, -1,
@@ -145,7 +154,6 @@ int main(int argc, char *argv[])
          for (iy = 0; iy < WINDOW_SIZE; iy++)
          {
 
-            // printf("%d ", computeArray[ix][iy]);
             if (gatherArray[ix][iy] < 50)
             {
                MPE_Draw_point(graph, ix, iy, MPE_RED);
@@ -157,8 +165,10 @@ int main(int argc, char *argv[])
          }
       }
 
+      //Stop timer
       totalTime = MPI_Wtime() - startTime;
 
+      // pause until mouse-click so the program doesn't terminate
       printf("\nClick in the window to continue...\n");
       MPE_Get_mouse_press(graph, &ix, &iy, &button);
 
