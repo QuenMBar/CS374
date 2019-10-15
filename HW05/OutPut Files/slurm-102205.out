@@ -1,0 +1,4 @@
+
+Using 100000000 trapezoids, 16 processes, and 0.138447 secs, the approximate vs actual values of PI are:
+3.141592653588617296790339028512
+3.141592653589793238512808959406
