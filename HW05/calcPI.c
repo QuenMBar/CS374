@@ -5,8 +5,13 @@
  *
  * Joel Adams, Fall 2013 for CS 374 at Calvin College.
  * 
- * Edited By Quentin Barnes
+ * Added chunk parallelization to the program by calculating chunk
+ * and having the last process handle the remainder
  * 
+ * Edited By Quentin Barnes
+ * Why   HomeWork 5, CS 374
+ * Where Calvin University, Gold Lab
+ * Date  10/16/19
  */
 
 #include "integral.h" // integrate()
@@ -50,6 +55,7 @@ unsigned long long processCommandLine(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
+   //Created variables and made them longs so they dont wrap
    long double approximatePI = 0, approximatePIGlobal = 0;
    const long double REFERENCE_PI = 3.141592653589793238462643383279L;
    unsigned long long numTrapezoids = processCommandLine(argc, argv);
@@ -58,18 +64,22 @@ int main(int argc, char **argv)
    long double processStart = 0.0, processEnd = 1.0, chunkSizeDouble = 0.0;
    double startTime = 0.0, totalTime = 0.0;
 
+   //Started mpi
    MPI_Init(&argc, &argv);
    MPI_Comm_rank(MPI_COMM_WORLD, &id);
    MPI_Comm_size(MPI_COMM_WORLD, &numProcesses);
 
+   //Calculated chunk sizes
    chunkSize = numTrapezoids / numProcesses;
    remainder = numTrapezoids % numProcesses;
    chunkSizeDouble = (double)chunkSize / (double)numTrapezoids;
    processStart = chunkSizeDouble * (double)id;
    processEnd = processStart + chunkSizeDouble;
 
+   //Start timer
    startTime = MPI_Wtime();
 
+   //If not last process just do your chunk, else do the chunk + remainder
    if (id != (numProcesses - 1))
    {
       approximatePI = integrateTrap(processStart, processEnd, chunkSize) * 4.0;
@@ -79,11 +89,13 @@ int main(int argc, char **argv)
       approximatePI = integrateTrap(processStart, 1.0, chunkSize + remainder) * 4.0;
    }
 
+   //Reduce it to the final value
    MPI_Reduce(&approximatePI, &approximatePIGlobal, 1, MPI_LONG_DOUBLE, MPI_SUM, 0,
               MPI_COMM_WORLD);
 
    totalTime = MPI_Wtime() - startTime;
 
+   //Print if 0
    if (id == 0)
    {
       printf("\nUsing %llu trapezoids, %d processes, and %f secs, the approximate vs actual values of PI are:\n%.30Lf\n%.30Lf\n",
