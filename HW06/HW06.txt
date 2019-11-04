@@ -1,0 +1,231 @@
+Script started on 2019-11-04 15:25:26-0500
+]0;qmb2@maroon16: ~/Git/CS374/HW06[01;32mqmb2@maroon16[00m:[01;34m~/Git/CS374/HW06[00m$ cat C calcPI2.c pthreadReduction.h pthreadBarrier.h 
+/* calcPI2.c calculates PI using POSIX threads.
+ * Since PI == 4 * arctan(1), and arctan(x) is the 
+ *  integral from 0 to x of (1/(1+x*x),
+ *  the for loop below approximates that integration.
+ *
+ * Joel Adams, Calvin College, Fall 2013.
+ * 
+ * Edited by Quentin Barnes, for HW06, Calvin University, Nov 2019
+ *
+ * Usage: ./calcPI2 [numIntervals] [numThreads]
+ */
+
+#include <stdio.h>   // printf(), fprintf(), etc.
+#include <stdlib.h>  // strtoul(), exit(), ...
+#include <pthread.h> // pthreads
+#include <mpi.h>     // MPI_Wtime()
+
+#include "pthreadReduction.h" // pthreadReductionSum()
+
+// global variables (shared by all threads
+volatile long double pi = 0.0; // our approximation of PI
+pthread_mutex_t piLock;        // how we synchronize writes to 'pi'
+long double intervals = 0;     // how finely we chop up the integration
+unsigned long numThreads = 0;  // how many threads we use
+
+/* compute PI using the parallel for loop pattern
+ * Parameters: arg, a void* 
+ * Preconditions: 
+ *   - non-locals intervals and numThreads are defined.
+ *   - arg contains the address of our thread's ID.
+ * Postcondition: non-local pi contains our approximation of PI.
+ */
+void *computePI(void *arg)
+{
+    long double x,
+        width,
+        localSum = 0;
+    unsigned long i,
+        threadID = *((unsigned long *)arg);
+
+    width = 1.0 / intervals;
+
+    for (i = threadID; i < intervals; i += numThreads)
+    {
+        x = (i + 0.5) * width;
+        localSum += 4.0 / (1.0 + x * x);
+    }
+
+    localSum *= width;
+
+    //Pass data to reduction sum
+    pthreadReductionSum(localSum, &pi, numThreads, threadID);
+
+    return NULL;
+}
+
+/* process the command-line arguments
+ * Parameters: argc, an int; and argv a char**.
+ * Postcondition:
+ *  - non-locals intervals and numThreads have been defined.
+ *     according to the values the user specified when
+ *     calcPI2 was invoked.
+ */
+void processCommandLine(int argc, char **argv)
+{
+    if (argc == 3)
+    {
+        intervals = strtoul(argv[1], 0, 10);
+        numThreads = strtoul(argv[2], 0, 10);
+    }
+    else if (argc == 2)
+    {
+        intervals = strtoul(argv[1], 0, 10);
+        numThreads = 1;
+    }
+    else if (argc == 1)
+    {
+        intervals = 1;
+        numThreads = 1;
+    }
+    else
+    {
+        fprintf(stderr, "\nUsage: calcPI2 [intervals] [numThreads]\n\n");
+        exit(1);
+    }
+}
+
+int main(int argc, char **argv)
+{
+    pthread_t *threads;      // dynamic array of threads
+    unsigned long *threadID; // dynamic array of thread id #s
+    unsigned long i;         // loop control variable
+    double startTime = 0,    // timing variables
+        stopTime = 0;
+
+    processCommandLine(argc, argv);
+
+    threads = malloc(numThreads * sizeof(pthread_t));
+    threadID = malloc(numThreads * sizeof(unsigned long));
+
+    startTime = MPI_Wtime();
+
+    for (i = 0; i < numThreads; i++)
+    { // fork threads
+        threadID[i] = i;
+        pthread_create(&threads[i], NULL, computePI, threadID + i);
+    }
+
+    for (i = 0; i < numThreads; i++)
+    { // join them
+        pthread_join(threads[i], NULL);
+    }
+    stopTime = MPI_Wtime();
+
+    printf("Estimation of pi is %32.30Lf in %lf secs\n", pi, stopTime - startTime);
+    printf("(actual pi value is 3.141592653589793238462643383279...)\n");
+
+    return 0;
+}
+/** pthreadReduction.h is a file that impelments the pthreadReductionSum
+ * This is a function that gets all the local values from the threads
+ * and uses barriers and reduction pattern to reduce the sums to one value
+ *
+ * who: Quentin Barnes
+ * why: Homework 6, 374
+ * where: Calvin University
+ * date: Nov 4, 2019
+ */
+#include "pthreadBarrier.h"
+long double *sumArray;
+
+/**Does summation using the reduction pattern in log(n) time
+ * Takes: localSum, a long double
+ * pi, a volatile long double
+ * numThreads, an int
+ * threadID, an int
+ * returns: Pi, a volatile long double
+ */
+void pthreadReductionSum(long double localSum, volatile long double *pi, int numThreads, int threadID)
+{
+    //Let the main thread allocate the array
+    if (threadID == 0)
+    {
+        sumArray = malloc(numThreads * sizeof(long double));
+    }
+
+    //Once it has done that, all the threads write their values to the
+    //their IDs position in the array, and the 0 array checks to see if its the only thread
+    pthreadBarrier(numThreads);
+    sumArray[threadID] = localSum;
+    if (numThreads == 1 && threadID == 0)
+    {
+        //Return main threads pi if its the only one
+        *pi = sumArray[0];
+        return;
+    }
+
+    //Wait for threads, and then calculate the number of threads to keep
+    pthreadBarrier(numThreads);
+    double threadsKeep = numThreads / 2;
+
+    while (threadsKeep > 0.5)
+    {
+        //if your id is less than the keep threshold, then add your value plus another value
+        if (threadID < threadsKeep)
+        {
+            sumArray[threadID] += sumArray[threadID + (int)threadsKeep];
+        }
+        //else break out of loop
+        else
+        {
+            break;
+        }
+        //Wait for threads to keep and then cut that number in half
+        pthreadBarrier(threadsKeep);
+        threadsKeep /= 2;
+    }
+
+    //if main thread, save pi as your value, and deallocate sum array
+    if (threadID == 0)
+    {
+        *pi = sumArray[0];
+        free(sumArray);
+    }
+
+    return;
+}
+/* pthreadBarrier.h implements the Barrier pattern using pthreads.
+ *
+ * Joel Adams, Calvin College, Fall 2013.
+ */
+
+#include <pthread.h>    // various pthread functions
+
+// Shared Variables used to implement the barrier
+   pthread_mutex_t barrierMutex = PTHREAD_MUTEX_INITIALIZER;
+   pthread_cond_t allThreadsPresent = PTHREAD_COND_INITIALIZER;
+   double barrierThreadCount = 0;
+
+/* the Barrier pattern for pthreads
+ * params: numThreads, the number of threads being synchronized
+ * postcondition: all of those threads have reached this call
+ *                 and are now ready to proceed.
+ */
+void pthreadBarrier(unsigned long numThreads) {
+   pthread_mutex_lock( &barrierMutex );
+   barrierThreadCount++;
+   if (barrierThreadCount == numThreads) {
+      barrierThreadCount = 0;
+      pthread_cond_broadcast( &allThreadsPresent );
+   } else {
+      while ( pthread_cond_wait( &allThreadsPresent, &barrierMutex) != 0 );
+   }
+   pthread_mutex_unlock( &barrierMutex );
+}
+
+void barrierCleanup() {
+   pthread_mutex_destroy(&barrierMutex);
+   pthread_cond_destroy(&allThreadsPresent);
+}
+
+]0;qmb2@maroon16: ~/Git/CS374/HW06[01;32mqmb2@maroon16[00m:[01;34m~/Git/CS374/HW06[00m$ make
+make: 'calcPI2' is up to date.
+]0;qmb2@maroon16: ~/Git/CS374/HW06[01;32mqmb2@maroon16[00m:[01;34m~/Git/CS374/HW06[00m$ ./calcPI2 1000000000 4
+Estimation of pi is 3.141592653589793591745876755184 in 1.457602 secs
+(actual pi value is 3.141592653589793238462643383279...)
+]0;qmb2@maroon16: ~/Git/CS374/HW06[01;32mqmb2@maroon16[00m:[01;34m~/Git/CS374/HW06[00m$ exit
+
+Script done on 2019-11-04 15:26:27-0500

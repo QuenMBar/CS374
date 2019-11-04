@@ -4,8 +4,6 @@
  *  the for loop below approximates that integration.
  *
  * Joel Adams, Calvin College, Fall 2013.
- * 
- * Edited by Quentin Barnes, for HW06, Calvin University, Nov 2019
  *
  * Usage: ./calcPI2 [numIntervals] [numThreads]
  */
@@ -14,8 +12,6 @@
 #include <stdlib.h>  // strtoul(), exit(), ...
 #include <pthread.h> // pthreads
 #include <mpi.h>     // MPI_Wtime()
-
-#include "pthreadReduction.h" // pthreadReductionSum()
 
 // global variables (shared by all threads
 volatile long double pi = 0.0; // our approximation of PI
@@ -48,8 +44,9 @@ void *computePI(void *arg)
 
     localSum *= width;
 
-    //Pass data to reduction sum
-    pthreadReductionSum(localSum, &pi, numThreads, threadID);
+    pthread_mutex_lock(&piLock);
+    pi += localSum;
+    pthread_mutex_unlock(&piLock);
 
     return NULL;
 }
@@ -97,6 +94,7 @@ int main(int argc, char **argv)
 
     threads = malloc(numThreads * sizeof(pthread_t));
     threadID = malloc(numThreads * sizeof(unsigned long));
+    pthread_mutex_init(&piLock, NULL);
 
     startTime = MPI_Wtime();
 
@@ -112,8 +110,11 @@ int main(int argc, char **argv)
     }
     stopTime = MPI_Wtime();
 
-    printf("Estimation of pi is %32.30Lf in %lf secs\n", pi, stopTime - startTime);
-    printf("(actual pi value is 3.141592653589793238462643383279...)\n");
+    // printf("Estimation of pi is %32.30Lf in %lf secs\n", pi, stopTime - startTime);
+    // printf("(actual pi value is 3.141592653589793238462643383279...)\n");
 
+    printf("%f\n", stopTime - startTime);
+
+    pthread_mutex_destroy(&piLock);
     return 0;
 }
