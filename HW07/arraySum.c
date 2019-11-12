@@ -2,11 +2,14 @@
  *  whose name is specified on the command-line.
  * Joel Adams, Fall 2005
  * for CS 374 (HPC) at Calvin College.
+ * 
+ * Edited by Quentin Barnes, for HW07, Calvin University, Nov 2019
  */
 
 #include <stdio.h>  /* I/O stuff */
 #include <stdlib.h> /* calloc, etc. */
 #include <string.h>
+#include <omp.h> // OpenMP
 
 void readArray(char *fileName, double **a, int *n);
 double sumArray(double *a, int numValues);
@@ -14,7 +17,7 @@ double sumArray(double *a, int numValues);
 int main(int argc, char *argv[])
 {
   int howMany;
-  double sum;
+  double sum, startTime = 0.0, ioTime = 0.0, scatterTime = 0.0, reduceTime = 0.0;
   double *a;
 
   if (argc != 2)
@@ -22,11 +25,21 @@ int main(int argc, char *argv[])
     fprintf(stderr, "\n*** Usage: arraySum <inputFile>\n\n");
     exit(1);
   }
+  startTime = omp_get_wtime();
 
   readArray(argv[1], &a, &howMany);
+
+  ioTime = omp_get_wtime() - startTime;
+
+  startTime = omp_get_wtime();
+
   sum = sumArray(a, howMany);
-  printf("The sum of the values in the input file '%s' is %g\n",
-         argv[1], sum);
+
+  reduceTime = omp_get_wtime() - startTime;
+  printf("The sum of the values in the input file '%s' is %g.  Io took %f, scatter took %f, and reduce took %f.\n",
+         argv[1], sum, ioTime, scatterTime, reduceTime);
+
+  // printf("Main, %s, %d, %g, %f, %f, %f\n", argv[1], 1, sum, ioTime, scatterTime, reduceTime);
 
   free(a);
 
@@ -50,7 +63,7 @@ void readArray(char *fileName, double **a, int *n)
   FILE *fin;
   char *realFileName;
 
-  // Set file name
+  // Set file name based on the provided input
   if (strcmp(fileName, "10k") == 0)
   {
     realFileName = "/home/cs/374/exercises/07/10k.txt";

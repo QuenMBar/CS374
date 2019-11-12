@@ -2,13 +2,16 @@
  *  whose name is specified on the command-line.
  * Joel Adams, Fall 2005
  * for CS 374 (HPC) at Calvin College.
+ * 
+ * Edited by Quentin Barnes, for HW07, Calvin University, Nov 2019
+ * Changed to use OMP for multithreading the program.  Master worker used for reading 
+ * the data, and reduce for used to parallelize for loop.
  */
 
 #include <stdio.h>  /* I/O stuff */
 #include <stdlib.h> /* calloc, etc. */
 #include <string.h>
 #include <omp.h> // OpenMP
-#include <mpi.h>
 
 void readArray(char *fileName, double **a, int *n);
 double sumArray(double *a, int numValues);
@@ -16,7 +19,7 @@ double sumArray(double *a, int numValues);
 int main(int argc, char *argv[])
 {
   int howMany, id;
-  double sum;
+  double sum, startTime = 0.0, ioTime = 0.0, scatterTime = 0.0, reduceTime = 0.0;
   double *a;
 
   if (argc != 3)
@@ -25,24 +28,37 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  if (argc > 1)
+  //Use the second argument to set thread count
+  if (argc > 2)
   {
     omp_set_num_threads(atoi(argv[2]));
   }
 
-#pragma omp parallel private(id, numThreads)
+  startTime = omp_get_wtime();
+
+  //Only have one thread read and init the array
+#pragma omp parallel private(id)
   {
     id = omp_get_thread_num();
-
     if (id == 0)
     {
       readArray(argv[1], &a, &howMany);
     }
 #pragma omp barrier
   }
+
+  ioTime = omp_get_wtime() - startTime;
+  startTime = omp_get_wtime();
+
+  //Then give the data to sum which will give back the total
   sum = sumArray(a, howMany);
-  printf("The sum of the values in the input file '%s' is %g\n",
-         argv[1], sum);
+
+  //Print
+  reduceTime = omp_get_wtime() - startTime;
+  printf("The sum of the values in the input file '%s' is %g.  Io took %f, scatter took %f, and reduce took %f.\n",
+         argv[1], sum, ioTime, scatterTime, reduceTime);
+
+  // printf("OMP, %s, %s, %g, %f, %f, %f\n", argv[1], argv[2], sum, ioTime, scatterTime, reduceTime);
 
   free(a);
 
@@ -129,12 +145,12 @@ double sumArray(double *a, int numValues)
   int i;
   double result = 0.0;
 
+//Use omp reduce for to have the threads sum in parallel
 #pragma omp parallel for reduction(+ \
                                    : result)
   for (i = 0; i < numValues; i++)
   {
-    result += *a;
-    a++;
+    result += a[i];
   }
 
   return result;

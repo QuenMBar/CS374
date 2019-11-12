@@ -2,6 +2,10 @@
  *  whose name is specified on the command-line.
  * Joel Adams, Fall 2005
  * for CS 374 (HPC) at Calvin College.
+ * 
+ * Edited by Quentin Barnes, for HW07, Calvin University, Nov 2019
+ * Changed to use MPI for multithreading the program.  Master worker used for reading 
+ * and scattering the data, and then blocks used for parellelizing the loop and reduce. 
  */
 
 #include <stdio.h>  /* I/O stuff */
@@ -15,10 +19,11 @@ double sumArray(double *a, int numValues);
 int main(int argc, char *argv[])
 {
   int howMany;
-  double localSum, globalSum, sum, startTime = 0.0, totalTime = 0.0;
-  double *aSend;
+  double sum, startTime = 0.0, ioTime = 0.0, scatterTime = 0.0, reduceTime = 0.0;
   double *aRcv;
-  int numProcs, myRank, numSent;
+  double *aSend;
+  // double *aRcv;
+  int numProcs, myRank, chunkSize;
 
   if (argc != 2)
   {
@@ -26,29 +31,44 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  //Init mpi
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
   startTime = MPI_Wtime();
+
+  //Only process 0 reads the array in
   if (myRank == 0)
   {
     readArray(argv[1], &aSend, &howMany);
   }
+  ioTime = MPI_Wtime() - startTime;
+  startTime = MPI_Wtime();
+
+  //Broadcasts the size of the array to the other threads and then sends them each chunks using mpi scatter
   MPI_Bcast(&howMany, 1, MPI_INT, 0, MPI_COMM_WORLD);
-  numSent = howMany / numProcs;
-  aRcv = (double *)malloc(numSent * sizeof(double));
-  MPI_Scatter(aSend, numSent, MPI_DOUBLE, aRcv, numSent, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  chunkSize = howMany / numProcs;
+  aRcv = (double *)malloc(chunkSize * sizeof(double));
+  MPI_Scatter(aSend, chunkSize, MPI_DOUBLE, aRcv, chunkSize, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-  sum = sumArray(aRcv, numSent);
+  scatterTime = MPI_Wtime() - startTime;
+  startTime = MPI_Wtime();
 
-  totalTime = MPI_Wtime() - startTime;
+  //The thread goes and reduces its chunk and 0 will receive the total
+  sum = sumArray(aRcv, chunkSize);
+
+  reduceTime = MPI_Wtime() - startTime;
 
   MPI_Barrier(MPI_COMM_WORLD);
+
+  //If 0, print the results
   if (myRank == 0)
   {
-    printf("The sum of the values in the input file '%s' is %g.  It took %f time.\n",
-           argv[1], sum, totalTime);
+    printf("The sum of the values in the input file '%s' is %g.  Io took %f, scatter took %f, and reduce took %f.\n",
+           argv[1], sum, ioTime, scatterTime, reduceTime);
+
+    // printf("MPI, %s, %d, %g, %f, %f, %f\n", argv[1], numProcs, sum, ioTime, scatterTime, reduceTime);
     free(aSend);
     free(aRcv);
   }
@@ -139,10 +159,10 @@ double sumArray(double *a, int numValues)
 
   for (i = 0; i < numValues; i++)
   {
-    resultLocal += *a;
-    a++;
+    resultLocal += a[i];
   }
 
+  //Uses mpi reduce to give process 0 the true total
   MPI_Reduce(&resultLocal, &resultGlobal, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
   return resultGlobal;
